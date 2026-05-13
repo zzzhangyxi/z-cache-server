@@ -14,25 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.zhang.cache.core.metadata.cachenode;
+package com.zhang.cache.core.hash;
+
+import com.google.common.hash.Hashing;
+
+import java.nio.charset.StandardCharsets;
 
 /**
- * Enum for cache node status
- *
  * @author zzzhangyxi
- * @since 2026/5/11
+ * @since 2026/5/13
  */
-public enum CacheNodeStatus {
-    REGISTERING,
-    ONLINE,
-    SUSPECTED_OFFLINE,
-    OFFLINE;
+public class HashUtils {
+    private HashUtils() {}
 
-    public static boolean isOnline(CacheNodeStatus status) {
-        return status == ONLINE || status == SUSPECTED_OFFLINE;
-    }
-
-    public static boolean isNotOnline(CacheNodeStatus status) {
-        return !isOnline(status);
+    public static long hash(String key) {
+        // after hashing, we got a signed value. but we need an unsigned value to build the hash ring.
+        int intHashValue = Hashing.murmur3_32_fixed()
+                .hashString(key, StandardCharsets.UTF_8)
+                .asInt();
+        return Integer.toUnsignedLong(intHashValue);
     }
 }

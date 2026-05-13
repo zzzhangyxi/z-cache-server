@@ -17,10 +17,12 @@
 package com.zhang.cache.core.metadata;
 
 import com.alibaba.fastjson.JSON;
+import com.zhang.cache.core.event.entity.CacheNodeMetadataRefreshEvent;
 import com.zhang.cache.core.metadata.cachenode.CacheNodeMetadata;
 import com.zhang.cache.core.repository.MetadataRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -36,6 +38,8 @@ import java.util.Map;
 public class MetadataManager {
     @Autowired
     private MetadataRepository metadataRepository;
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
 
     /**
      * Do not need to use ConcurrentHashMap, HashMap is enough for a metadata read and update scenario.<br>
@@ -58,5 +62,6 @@ public class MetadataManager {
 
     public void refreshLocalMetadata() {
         cacheNodeMetadata = metadataRepository.getAllCacheNodeMetadata();
+        eventPublisher.publishEvent(new CacheNodeMetadataRefreshEvent(System.currentTimeMillis()));
     }
 }

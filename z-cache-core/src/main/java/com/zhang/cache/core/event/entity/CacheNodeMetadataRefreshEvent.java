@@ -14,25 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.zhang.cache.core.metadata.cachenode;
+package com.zhang.cache.core.event.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
 
 /**
- * Enum for cache node status
- *
  * @author zzzhangyxi
- * @since 2026/5/11
+ * @since 2026/5/13
  */
-public enum CacheNodeStatus {
-    REGISTERING,
-    ONLINE,
-    SUSPECTED_OFFLINE,
-    OFFLINE;
-
-    public static boolean isOnline(CacheNodeStatus status) {
-        return status == ONLINE || status == SUSPECTED_OFFLINE;
-    }
-
-    public static boolean isNotOnline(CacheNodeStatus status) {
-        return !isOnline(status);
-    }
+@Data
+@AllArgsConstructor
+public class CacheNodeMetadataRefreshEvent {
+    private Long refreshTimestamp;
 }
