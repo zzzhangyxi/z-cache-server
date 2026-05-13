@@ -1,0 +1,19 @@
+{
+  "properties": [
+    {
+      "name": "metadata.ip",
+      "type": "java.lang.String",
+      "description": "Metadata redis ip."
+    },
+    {
+      "name": "metadata.port",
+      "type": "java.lang.String",
+      "description": "Metadata redis port."
+    },
+    {
+      "name": "metadata.password",
+      "type": "java.lang.String",
+      "description": "Metadata redis password."
+    }
+  ]
+}
