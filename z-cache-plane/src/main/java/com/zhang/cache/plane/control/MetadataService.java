@@ -14,18 +14,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.zhang.cache.core.repository;
+package com.zhang.cache.plane.control;
 
 import com.zhang.cache.core.metadata.cachenode.CacheNodeMetadata;
-
-import java.util.Map;
+import com.zhang.cache.core.metadata.cachenode.CacheNodeStatus;
+import com.zhang.cache.core.repository.MetadataRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 /**
  * @author zzzhangyxi
  * @since 2026/5/13
  */
-public interface MetadataRepository {
-    Map<String, CacheNodeMetadata> getAllCacheNodeMetadata();
+@Service
+public class MetadataService {
+    @Autowired
+    private MetadataRepository metadataRepository;
 
-    void register(CacheNodeMetadata cacheNodeMetadata);
+    public void register(String id, String ip, Integer port) {
+        CacheNodeMetadata cacheNodeMetadata = CacheNodeMetadata.builder()
+                .id(id)
+                .ip(ip)
+                .port(port == null ? 6379 : port)
+                .status(CacheNodeStatus.REGISTERING)
+                .startupTimestamp(System.currentTimeMillis())
+                .version(1L)
+                .build();
+        metadataRepository.register(cacheNodeMetadata);
+        // TODO 数据复制逻辑
+        // initNodeData();
+    }
 }

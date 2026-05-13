@@ -14,18 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.zhang.cache.core.repository;
+package com.zhang.cache.interfaces.http.dto;
 
-import com.zhang.cache.core.metadata.cachenode.CacheNodeMetadata;
+import lombok.Data;
 
-import java.util.Map;
+import java.io.Serializable;
 
 /**
  * @author zzzhangyxi
  * @since 2026/5/13
  */
-public interface MetadataRepository {
-    Map<String, CacheNodeMetadata> getAllCacheNodeMetadata();
-
-    void register(CacheNodeMetadata cacheNodeMetadata);
+@Data
+public class MetadataRegisterRequestDTO implements Serializable {
+    private String id;
+    private String ip;
+    private Integer port;
 }

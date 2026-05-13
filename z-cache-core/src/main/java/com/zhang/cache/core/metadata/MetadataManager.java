@@ -53,7 +53,10 @@ public class MetadataManager {
     public void startScheduledRefreshLocalMetadata() {
         log.info("start to schedule refresh local metadata...");
         // use reference replacing to avoid concurrent issues and visibility issues.
+        refreshLocalMetadata();
+    }
+
+    public void refreshLocalMetadata() {
         cacheNodeMetadata = metadataRepository.getAllCacheNodeMetadata();
-        log.info(JSON.toJSONString(cacheNodeMetadata));
     }
 }

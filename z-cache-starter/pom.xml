@@ -20,10 +20,6 @@
     <dependencies>
         <dependency>
             <groupId>com.zhang</groupId>
-            <artifactId>z-cache-foundation</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.zhang</groupId>
             <artifactId>z-cache-core</artifactId>
         </dependency>
         <dependency>

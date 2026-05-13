@@ -14,18 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.zhang.cache.core.repository;
+package com.zhang.cache.interfaces.http;
 
-import com.zhang.cache.core.metadata.cachenode.CacheNodeMetadata;
-
-import java.util.Map;
+import com.zhang.cache.interfaces.http.dto.MetadataRegisterRequestDTO;
+import com.zhang.cache.plane.control.MetadataService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 /**
  * @author zzzhangyxi
  * @since 2026/5/13
  */
-public interface MetadataRepository {
-    Map<String, CacheNodeMetadata> getAllCacheNodeMetadata();
+@RestController
+@RequestMapping("/metadata")
+public class MetadataController {
+    @Autowired
+    private MetadataService metadataService;
 
-    void register(CacheNodeMetadata cacheNodeMetadata);
+    @PostMapping("/register")
+    public String register(@RequestBody MetadataRegisterRequestDTO request) {
+        metadataService.register(request.getId(), request.getIp(), request.getPort());
+        return "success";
+    }
 }

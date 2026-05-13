@@ -50,4 +50,11 @@ public class MetadataRepositoryImpl implements MetadataRepository {
         log.info("Cache node metadata:[{}]", JSON.toJSONString(cacheNodeMetadata));
         return cacheNodeMetadata;
     }
+
+    @Override
+    public void register(CacheNodeMetadata cacheNodeMetadata) {
+        String nodeId = cacheNodeMetadata.getId();
+        String metadata = JSON.toJSONString(cacheNodeMetadata);
+        redisCommands.hset(MetadataConstants.CACHE_NODE_METADATA_KEY_PREFIX, nodeId, metadata);
+    }
 }

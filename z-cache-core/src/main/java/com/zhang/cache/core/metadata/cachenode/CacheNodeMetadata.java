@@ -16,13 +16,19 @@
  */
 package com.zhang.cache.core.metadata.cachenode;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * @author zzzhangyxi
  * @since 2026/5/11
  */
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class CacheNodeMetadata {
     private String id;
     private String ip;

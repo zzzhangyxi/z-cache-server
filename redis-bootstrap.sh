@@ -11,8 +11,6 @@ fi
 
 NODE_ID=$(cat "$NODE_ID_FILE")
 
-STARTUP_TIMESTAMP=$(date +%s%3N)
-
 IP=$(hostname -i)
 
 REDIS_PORT=6379
@@ -32,10 +30,7 @@ curl -X POST http://control-plane:8080/nodes/register \
   -d "{
         \"id\":\"$NODE_ID\",
         \"ip\":\"$IP\",
-        \"port\":$REDIS_PORT,
-        \"status\":\"REGISTERING\",
-        \"startupTimestamp\":$STARTUP_TIMESTAMP,
-        \"version\":1
+        \"port\":$REDIS_PORT
       }"
 
 echo "Node registered."
