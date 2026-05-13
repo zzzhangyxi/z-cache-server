@@ -19,11 +19,12 @@ package com.zhang.cache.interfaces.metadata;
 import com.alibaba.fastjson.JSON;
 import com.zhang.cache.core.metadata.cachenode.CacheNodeMetadata;
 import com.zhang.cache.core.repository.MetadataRepository;
+import com.zhang.cache.interfaces.RedisConstants;
 import io.lettuce.core.api.sync.RedisCommands;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.MapUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Repository;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -32,7 +33,7 @@ import java.util.Map;
  * @author zzzhangyxi
  * @since 2026/5/13
  */
-@Component
+@Repository
 @Slf4j
 public class MetadataRepositoryImpl implements MetadataRepository {
     @Autowired
@@ -40,12 +41,11 @@ public class MetadataRepositoryImpl implements MetadataRepository {
 
     @Override
     public Map<String, CacheNodeMetadata> getAllCacheNodeMetadata() {
-        Map<String, String> rawData = redisCommands.hgetall(MetadataConstants.CACHE_NODE_METADATA_KEY_PREFIX);
+        Map<String, String> rawData = redisCommands.hgetall(RedisConstants.CACHE_NODE_METADATA_KEY);
         Map<String, CacheNodeMetadata> cacheNodeMetadata = new HashMap<>();
         if (MapUtils.isNotEmpty(rawData)) {
-            rawData.forEach((nodeId, nodeMetadata) -> {
-                cacheNodeMetadata.put(nodeId, JSON.parseObject(nodeMetadata, CacheNodeMetadata.class));
-            });
+            rawData.forEach((nodeId, nodeMetadata) ->
+                    cacheNodeMetadata.put(nodeId, JSON.parseObject(nodeMetadata, CacheNodeMetadata.class)));
         }
         log.info("Cache node metadata:[{}]", JSON.toJSONString(cacheNodeMetadata));
         return cacheNodeMetadata;
@@ -55,6 +55,6 @@ public class MetadataRepositoryImpl implements MetadataRepository {
     public void register(CacheNodeMetadata cacheNodeMetadata) {
         String nodeId = cacheNodeMetadata.getId();
         String metadata = JSON.toJSONString(cacheNodeMetadata);
-        redisCommands.hset(MetadataConstants.CACHE_NODE_METADATA_KEY_PREFIX, nodeId, metadata);
+        redisCommands.hset(RedisConstants.CACHE_NODE_METADATA_KEY, nodeId, metadata);
     }
 }

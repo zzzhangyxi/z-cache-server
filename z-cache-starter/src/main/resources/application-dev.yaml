@@ -2,3 +2,5 @@ metadata:
   ip: 127.0.0.1
   port: 6379
   password: zhang*2000
+business:
+  password: zhang*2000

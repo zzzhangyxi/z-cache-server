@@ -20,6 +20,7 @@ import com.zhang.cache.core.exception.NoAvailableNodeException;
 import com.zhang.cache.core.hash.HashRingManager;
 import com.zhang.cache.core.hash.HashUtils;
 import com.zhang.cache.core.metadata.cachenode.CacheNodeMetadata;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.MapUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -31,15 +32,22 @@ import java.util.NavigableMap;
  * @author zzzhangyxi
  * @since 2026/5/13
  */
+@Slf4j
 @Service
 public class RoutingService {
     @Autowired
     private HashRingManager hashRingManager;
 
+    public CacheNodeMetadata route(String key) {
+        // TODO 补全逻辑
+        return basicRoute(key);
+    }
+
     public CacheNodeMetadata basicRoute(String key) {
         long hash = HashUtils.hash(key);
         NavigableMap<Long, CacheNodeMetadata> hashRing = hashRingManager.getHashRing();
         if (MapUtils.isEmpty(hashRing)) {
+            log.error("Hash ring is empty, there is no available cache node.");
             throw new NoAvailableNodeException("Hash ring is empty, there is no available cache node.");
         }
 

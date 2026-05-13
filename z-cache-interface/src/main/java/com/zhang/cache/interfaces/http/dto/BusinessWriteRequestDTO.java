@@ -14,12 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.zhang.cache.interfaces.metadata;
+package com.zhang.cache.interfaces.http.dto;
+
+import lombok.Data;
+
+import java.io.Serializable;
 
 /**
  * @author zzzhangyxi
  * @since 2026/5/13
  */
-public class MetadataConstants {
-    public static final String CACHE_NODE_METADATA_KEY_PREFIX = "cache:metadata:info";
+@Data
+public class BusinessWriteRequestDTO implements Serializable {
+    private String key;
+    private String value;
+    private Integer expireSeconds;
 }

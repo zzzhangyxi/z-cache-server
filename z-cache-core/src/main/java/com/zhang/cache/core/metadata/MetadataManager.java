@@ -26,6 +26,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -51,6 +52,11 @@ public class MetadataManager {
 
     public Map<String, CacheNodeMetadata> getAllCacheNodeMetadata() {
         return cacheNodeMetadata;
+    }
+
+    @Nullable
+    public CacheNodeMetadata getCacheNodeMetadata(String cacheNodeId) {
+        return cacheNodeMetadata.get(cacheNodeId);
     }
 
     @Scheduled(fixedRate = 5000)
