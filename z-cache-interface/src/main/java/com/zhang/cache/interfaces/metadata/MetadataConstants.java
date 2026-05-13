@@ -14,16 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.zhang.cache.jvm;
+package com.zhang.cache.interfaces.metadata;
 
 /**
  * @author zzzhangyxi
- * @since 2026/5/11
+ * @since 2026/5/13
  */
-public class ExecutableBeanShutdownManager {
-    private ExecutableBeanShutdownManager() {}
-
-    public static void registerShutdownHook(Runnable runnable) {
-        Runtime.getRuntime().addShutdownHook(new Thread(runnable));
-    }
+public class MetadataConstants {
+    public static final String CACHE_NODE_METADATA_KEY_PREFIX = "cache:metadata:info";
 }

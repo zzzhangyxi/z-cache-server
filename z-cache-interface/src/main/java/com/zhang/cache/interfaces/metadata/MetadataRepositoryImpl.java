@@ -16,11 +16,16 @@
  */
 package com.zhang.cache.interfaces.metadata;
 
+import com.alibaba.fastjson.JSON;
 import com.zhang.cache.core.metadata.cachenode.CacheNodeMetadata;
 import com.zhang.cache.core.repository.MetadataRepository;
+import io.lettuce.core.api.sync.RedisCommands;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.MapUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -30,12 +35,19 @@ import java.util.Map;
 @Component
 @Slf4j
 public class MetadataRepositoryImpl implements MetadataRepository {
+    @Autowired
+    private RedisCommands<String, String> redisCommands;
+
     @Override
     public Map<String, CacheNodeMetadata> getAllCacheNodeMetadata() {
-
-
-
-        log.info("========");
-        return null;
+        Map<String, String> rawData = redisCommands.hgetall(MetadataConstants.CACHE_NODE_METADATA_KEY_PREFIX);
+        Map<String, CacheNodeMetadata> cacheNodeMetadata = new HashMap<>();
+        if (MapUtils.isNotEmpty(rawData)) {
+            rawData.forEach((nodeId, nodeMetadata) -> {
+                cacheNodeMetadata.put(nodeId, JSON.parseObject(nodeMetadata, CacheNodeMetadata.class));
+            });
+        }
+        log.info("Cache node metadata:[{}]", JSON.toJSONString(cacheNodeMetadata));
+        return cacheNodeMetadata;
     }
 }

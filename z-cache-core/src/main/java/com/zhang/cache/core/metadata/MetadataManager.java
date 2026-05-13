@@ -16,6 +16,7 @@
  */
 package com.zhang.cache.core.metadata;
 
+import com.alibaba.fastjson.JSON;
 import com.zhang.cache.core.metadata.cachenode.CacheNodeMetadata;
 import com.zhang.cache.core.repository.MetadataRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -33,11 +34,8 @@ import java.util.Map;
 @Slf4j
 @Component
 public class MetadataManager {
-    private final MetadataRepository metadataRepository;
     @Autowired
-    public MetadataManager(MetadataRepository metadataRepository) {
-        this.metadataRepository = metadataRepository;
-    }
+    private MetadataRepository metadataRepository;
 
     /**
      * Do not need to use ConcurrentHashMap, HashMap is enough for a metadata read and update scenario.<br>
@@ -56,5 +54,6 @@ public class MetadataManager {
         log.info("start to schedule refresh local metadata...");
         // use reference replacing to avoid concurrent issues and visibility issues.
         cacheNodeMetadata = metadataRepository.getAllCacheNodeMetadata();
+        log.info(JSON.toJSONString(cacheNodeMetadata));
     }
 }
