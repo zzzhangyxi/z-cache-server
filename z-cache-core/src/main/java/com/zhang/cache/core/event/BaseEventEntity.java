@@ -14,24 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.zhang.cache.core.event.entity;
+package com.zhang.cache.core.event;
 
-import com.zhang.cache.core.event.BaseEventEntity;
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 
 /**
  * @author zzzhangyxi
- * @since 2026/5/13
+ * @since 2026/5/14
  */
 @Data
-@EqualsAndHashCode(callSuper = true)
-@AllArgsConstructor
-public class CacheNodeMetadataRefreshEvent extends BaseEventEntity {
+public abstract class BaseEventEntity {
+    private final long timestamp = System.currentTimeMillis();
 
-    @Override
-    public boolean reliable() {
-        return true;
-    }
+    public abstract boolean reliable();
 }

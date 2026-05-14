@@ -17,6 +17,7 @@
 package com.zhang.cache.core.hash;
 
 import com.zhang.cache.core.constant.HashRingConstants;
+import com.zhang.cache.core.event.EventListener;
 import com.zhang.cache.core.event.entity.CacheNodeMetadataRefreshEvent;
 import com.zhang.cache.core.metadata.MetadataManager;
 import com.zhang.cache.core.metadata.cachenode.CacheNodeMetadata;
@@ -24,8 +25,7 @@ import com.zhang.cache.core.metadata.cachenode.CacheNodeStatus;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.event.EventListener;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
 import java.util.Map;
 import java.util.NavigableMap;
@@ -35,9 +35,9 @@ import java.util.TreeMap;
  * @author zzzhangyxi
  * @since 2026/5/13
  */
-@Service
+@Component
 @Slf4j
-public class HashRingManager {
+public class HashRingManager implements EventListener<CacheNodeMetadataRefreshEvent> {
     @Getter
     private volatile NavigableMap<Long, CacheNodeMetadata> hashRing = new TreeMap<>();
     private volatile long lastRefreshTime = 0L;
@@ -45,12 +45,14 @@ public class HashRingManager {
     @Autowired
     private MetadataManager metadataManager;
 
-    @EventListener
-    public synchronized void handleCacheNodeMetadataRefreshEvent(CacheNodeMetadataRefreshEvent event) {
-        Long refreshTimestamp = event.getRefreshTimestamp();
-        if (refreshTimestamp == null) {
-            return;
-        }
+    @Override
+    public Class<CacheNodeMetadataRefreshEvent> supportType() {
+        return CacheNodeMetadataRefreshEvent.class;
+    }
+
+    @Override
+    public synchronized void onEvent(CacheNodeMetadataRefreshEvent event) {
+        long refreshTimestamp = event.getTimestamp();
 
         if (refreshTimestamp > lastRefreshTime) {
             rebuildHashRing();
