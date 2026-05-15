@@ -14,17 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.zhang.cache.core.event;
+package com.zhang.cache.core.event.listener;
 
-import lombok.Getter;
+import com.zhang.cache.core.event.EventListener;
+import com.zhang.cache.core.event.entity.ReadKeyEvent;
+import com.zhang.cache.core.hotkey.HotKeyManager;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 /**
  * @author zzzhangyxi
- * @since 2026/5/14
+ * @since 2026/5/15
  */
-@Getter
-public abstract class BaseEventEntity {
-    private final long timestamp = System.currentTimeMillis();
+@Component
+public class ReadKeyEventListener implements EventListener<ReadKeyEvent> {
+    @Autowired
+    private HotKeyManager hotKeyManager;
 
-    public abstract EventType getEventType();
+    @Override
+    public Class<ReadKeyEvent> supportType() {
+        return ReadKeyEvent.class;
+    }
+
+    @Override
+    public void onEvent(ReadKeyEvent event) {
+        hotKeyManager.recordKey(event.getKey());
+    }
 }

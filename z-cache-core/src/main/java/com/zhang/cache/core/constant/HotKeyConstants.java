@@ -14,17 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.zhang.cache.core.event;
-
-import lombok.Getter;
+package com.zhang.cache.core.constant;
 
 /**
  * @author zzzhangyxi
- * @since 2026/5/14
+ * @since 2026/5/15
  */
-@Getter
-public abstract class BaseEventEntity {
-    private final long timestamp = System.currentTimeMillis();
-
-    public abstract EventType getEventType();
+public class HotKeyConstants {
+    public static final int HOT_KEY_WINDOW_SIZE = 10;
+    public static final int ABSOLUTE_HOT_KEY_QPS_THRESHOLD = 10000;
+    public static final int RELATIVE_HOT_KEY_QPS_THRESHOLD = 3000;
+    public static final double RELATIVE_HOT_KEY_QPS_RATIO_THRESHOLD = 0.3d;
 }
