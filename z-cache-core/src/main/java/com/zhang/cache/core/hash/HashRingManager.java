@@ -17,8 +17,6 @@
 package com.zhang.cache.core.hash;
 
 import com.zhang.cache.core.constant.HashRingConstants;
-import com.zhang.cache.core.event.EventListener;
-import com.zhang.cache.core.event.entity.CacheNodeMetadataRefreshEvent;
 import com.zhang.cache.core.metadata.MetadataManager;
 import com.zhang.cache.core.metadata.cachenode.CacheNodeMetadata;
 import com.zhang.cache.core.metadata.cachenode.CacheNodeStatus;
@@ -37,32 +35,14 @@ import java.util.TreeMap;
  */
 @Component
 @Slf4j
-public class HashRingManager implements EventListener<CacheNodeMetadataRefreshEvent> {
+public class HashRingManager {
     @Getter
     private volatile NavigableMap<Long, CacheNodeMetadata> hashRing = new TreeMap<>();
-    private volatile long lastRefreshTime = 0L;
 
     @Autowired
     private MetadataManager metadataManager;
 
-    @Override
-    public Class<CacheNodeMetadataRefreshEvent> supportType() {
-        return CacheNodeMetadataRefreshEvent.class;
-    }
-
-    @Override
-    public synchronized void onEvent(CacheNodeMetadataRefreshEvent event) {
-        long refreshTimestamp = event.getTimestamp();
-
-        if (refreshTimestamp > lastRefreshTime) {
-            rebuildHashRing();
-            lastRefreshTime = refreshTimestamp;
-        } else {
-            log.info("Refresh time:{}, last refresh time:{}, ignore this refresh.", refreshTimestamp, lastRefreshTime);
-        }
-    }
-
-    private void rebuildHashRing() {
+    public void rebuildHashRing() {
         NavigableMap<Long, CacheNodeMetadata> newHashRing = new TreeMap<>();
 
         Map<String, CacheNodeMetadata> cacheNodeMetadata = metadataManager.getAllCacheNodeMetadata();
