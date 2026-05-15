@@ -50,8 +50,6 @@ public class EventListenerRegister implements ApplicationContextAware, SmartInit
     @Override
     @SuppressWarnings({"rawtypes", "unchecked"})
     public void afterSingletonsInstantiated() {
-        Collection<EventPublisher> values = context.getBeansOfType(EventPublisher.class).values();
-        System.out.println(values);
         Collection<EventListener> listeners = context.getBeansOfType(EventListener.class).values();
         if (CollectionUtils.isEmpty(listeners)) {
             log.warn("No event listener found.");
