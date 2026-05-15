@@ -14,25 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.zhang.cache.core.event.entity;
-
-import com.zhang.cache.core.event.BaseEventEntity;
-import com.zhang.cache.core.event.EventType;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-
+package com.zhang.cache.core.event;
 /**
- * @author zzzhangyxi
- * @since 2026/5/13
- */
-@Data
-@EqualsAndHashCode(callSuper = true)
-@AllArgsConstructor
-public class CacheNodeMetadataRefreshEvent extends BaseEventEntity {
-
-    @Override
-    public EventType getEventType() {
-        return EventType.CACHE_NODE_REFRESH;
-    }
+  * @author zzzhangyxi
+  * @since 2026/5/15
+  */
+public enum EventType {
+    CACHE_NODE_REFRESH,
+    READ_KEY,
+    WRITE_KEY
 }

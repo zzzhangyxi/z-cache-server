@@ -24,15 +24,14 @@ import lombok.EqualsAndHashCode;
 
 /**
  * @author zzzhangyxi
- * @since 2026/5/13
+ * @since 2026/5/15
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
 @AllArgsConstructor
-public class CacheNodeMetadataRefreshEvent extends BaseEventEntity {
-
+public class WriteKeyEvent extends BaseEventEntity {
     @Override
     public EventType getEventType() {
-        return EventType.CACHE_NODE_REFRESH;
+        return EventType.WRITE_KEY;
     }
 }

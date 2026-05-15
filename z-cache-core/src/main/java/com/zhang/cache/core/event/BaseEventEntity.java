@@ -26,5 +26,5 @@ import lombok.Data;
 public abstract class BaseEventEntity {
     private final long timestamp = System.currentTimeMillis();
 
-    public abstract boolean reliable();
+    public abstract EventType getEventType();
 }

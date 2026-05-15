@@ -16,14 +16,16 @@
  */
 package com.zhang.cache.core.event;
 
-import com.zhang.cache.core.exception.EventException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -36,23 +38,39 @@ import java.util.concurrent.TimeUnit;
 @Component
 @Slf4j
 public class EventPublisher {
+    private static final Map<EventType, Executor> EXECUTORS = new ConcurrentHashMap<>();
+
     @Autowired
     private EventListenerRegister eventListenerRegister;
 
-    private static final Executor RELIABLE_EVENT_POOL = new ThreadPoolExecutor(
+    private static final Executor CACHE_NODE_METADATA_REFRESH_EVENT_POOL = new ThreadPoolExecutor(
             Runtime.getRuntime().availableProcessors() * 4,
             Runtime.getRuntime().availableProcessors() * 30,
             60L,
             TimeUnit.SECONDS,
             new LinkedBlockingQueue<>(1000),
             new ThreadPoolExecutor.CallerRunsPolicy());
-    private static final Executor UNRELIABLE_EVENT_POOL = new ThreadPoolExecutor(
+    private static final Executor READ_KEY_EVENT_POOL = new ThreadPoolExecutor(
             Runtime.getRuntime().availableProcessors() * 20,
             Runtime.getRuntime().availableProcessors() * 50,
             60L,
             TimeUnit.SECONDS,
             new LinkedBlockingQueue<>(1000),
             new ThreadPoolExecutor.CallerRunsPolicy());
+    private static final Executor WRITE_KEY_EVENT_POOL = new ThreadPoolExecutor(
+            Runtime.getRuntime().availableProcessors() * 10,
+            Runtime.getRuntime().availableProcessors() * 30,
+            60L,
+            TimeUnit.SECONDS,
+            new LinkedBlockingQueue<>(1000),
+            new ThreadPoolExecutor.CallerRunsPolicy());
+
+    @PostConstruct
+    private void init() {
+        EXECUTORS.put(EventType.CACHE_NODE_REFRESH, CACHE_NODE_METADATA_REFRESH_EVENT_POOL);
+        EXECUTORS.put(EventType.READ_KEY, READ_KEY_EVENT_POOL);
+        EXECUTORS.put(EventType.WRITE_KEY, WRITE_KEY_EVENT_POOL);
+    }
 
     @SuppressWarnings("unchecked")
     public <T extends BaseEventEntity> void publishEvent(T event) {
@@ -65,7 +83,7 @@ public class EventPublisher {
             return;
         }
 
-        Executor executor = event.reliable() ? RELIABLE_EVENT_POOL : UNRELIABLE_EVENT_POOL;
+        Executor executor = EXECUTORS.get(event.getEventType());
         for (EventListener<? extends BaseEventEntity> listener : listeners) {
             EventListener<T> typedListener = (EventListener<T>) listener;
             CompletableFuture
