@@ -17,7 +17,9 @@
 package com.zhang.cache.interfaces.metadata;
 
 import com.alibaba.fastjson.JSON;
+import com.zhang.cache.core.constant.HotKeyConstants;
 import com.zhang.cache.core.metadata.cachenode.CacheNodeMetadata;
+import com.zhang.cache.core.metadata.hotkey.HotKeyMetadata;
 import com.zhang.cache.core.repository.MetadataRepository;
 import com.zhang.cache.interfaces.RedisConstants;
 import io.lettuce.core.api.sync.RedisCommands;
@@ -56,5 +58,16 @@ public class MetadataRepositoryImpl implements MetadataRepository {
         String nodeId = cacheNodeMetadata.getId();
         String metadata = JSON.toJSONString(cacheNodeMetadata);
         redisCommands.hset(RedisConstants.CACHE_NODE_METADATA_KEY, nodeId, metadata);
+    }
+
+    @Override
+    public void updateHotKeyMetadata(HotKeyMetadata hotKeyMetadata) {
+        String key = hotKeyMetadata.getKey();
+
+        Map<String, String> hotKeyInfo = new HashMap<>();
+        hotKeyInfo.put(HotKeyConstants.HOT_KEY_INFO_KEY, key);
+        hotKeyInfo.put(HotKeyConstants.HOT_KEY_INFO_STATUS, hotKeyMetadata.getStatus().name());
+        hotKeyInfo.put(HotKeyConstants.HOT_KEY_INFO_TIMESTAMP, String.valueOf(hotKeyMetadata.getLastOperationTimestamp()));
+        redisCommands.hset(HotKeyConstants.HOT_KEY_PREFIX + key, hotKeyInfo);
     }
 }

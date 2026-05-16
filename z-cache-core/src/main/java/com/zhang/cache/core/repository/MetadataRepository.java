@@ -17,6 +17,7 @@
 package com.zhang.cache.core.repository;
 
 import com.zhang.cache.core.metadata.cachenode.CacheNodeMetadata;
+import com.zhang.cache.core.metadata.hotkey.HotKeyMetadata;
 
 import java.util.Map;
 
@@ -28,4 +29,6 @@ public interface MetadataRepository {
     Map<String, CacheNodeMetadata> getAllCacheNodeMetadata();
 
     void register(CacheNodeMetadata cacheNodeMetadata);
+
+    void updateHotKeyMetadata(HotKeyMetadata hotKeyMetadata);
 }

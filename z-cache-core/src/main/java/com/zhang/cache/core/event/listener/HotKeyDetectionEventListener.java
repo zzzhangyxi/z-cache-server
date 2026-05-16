@@ -17,27 +17,30 @@
 package com.zhang.cache.core.event.listener;
 
 import com.zhang.cache.core.event.EventListener;
-import com.zhang.cache.core.event.entity.ReadKeyEvent;
-import com.zhang.cache.core.hotkey.HotKeyDetector;
+import com.zhang.cache.core.event.entity.HotKeyDetectionEvent;
+import com.zhang.cache.core.hotkey.HotKeyLifecycleManager;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
  * @author zzzhangyxi
- * @since 2026/5/15
+ * @since 2026/5/16
  */
 @Component
-public class ReadKeyEventListener implements EventListener<ReadKeyEvent> {
+@Slf4j
+public class HotKeyDetectionEventListener implements EventListener<HotKeyDetectionEvent> {
     @Autowired
-    private HotKeyDetector hotKeyManager;
+    private HotKeyLifecycleManager hotKeyLifecycleManager;
 
     @Override
-    public Class<ReadKeyEvent> supportType() {
-        return ReadKeyEvent.class;
+    public Class<HotKeyDetectionEvent> supportType() {
+        return HotKeyDetectionEvent.class;
     }
 
     @Override
-    public void onEvent(ReadKeyEvent event) {
-        hotKeyManager.recordKey(event.getKey());
+    public void onEvent(HotKeyDetectionEvent event) {
+        log.info("Process hot key detection event. {}", event.getTimestamp());
+        hotKeyLifecycleManager.updateLocalHotKeyMetadata(event.getHotKeys());
     }
 }

@@ -17,27 +17,33 @@
 package com.zhang.cache.core.event.listener;
 
 import com.zhang.cache.core.event.EventListener;
-import com.zhang.cache.core.event.entity.ReadKeyEvent;
-import com.zhang.cache.core.hotkey.HotKeyDetector;
+import com.zhang.cache.core.event.entity.HotKeyMetadataRefreshEvent;
+import com.zhang.cache.core.metadata.hotkey.HotKeyMetadata;
+import com.zhang.cache.core.repository.MetadataRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.Map;
+
 /**
  * @author zzzhangyxi
- * @since 2026/5/15
+ * @since 2026/5/16
  */
 @Component
-public class ReadKeyEventListener implements EventListener<ReadKeyEvent> {
+public class HotKeyMetadataRefreshEventListener implements EventListener<HotKeyMetadataRefreshEvent> {
     @Autowired
-    private HotKeyDetector hotKeyManager;
+    private MetadataRepository metadataRepository;
 
     @Override
-    public Class<ReadKeyEvent> supportType() {
-        return ReadKeyEvent.class;
+    public Class<HotKeyMetadataRefreshEvent> supportType() {
+        return HotKeyMetadataRefreshEvent.class;
     }
 
     @Override
-    public void onEvent(ReadKeyEvent event) {
-        hotKeyManager.recordKey(event.getKey());
+    public void onEvent(HotKeyMetadataRefreshEvent event) {
+        for (Map.Entry<String, HotKeyMetadata> entry : event.getHotKeyMetadataMap().entrySet()) {
+            HotKeyMetadata hotKeyMetadata = entry.getValue();
+            metadataRepository.updateHotKeyMetadata(hotKeyMetadata);
+        }
     }
 }

@@ -14,14 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.zhang.cache.core.event;
+package com.zhang.cache.core.metadata.hotkey;
+
 /**
-  * @author zzzhangyxi
-  * @since 2026/5/15
-  */
-public enum EventType {
-    CACHE_NODE_REFRESH,
-    HOT_KEY_METADATA_REFRESH,
-    READ_KEY,
-    WRITE_KEY
+ * @author zzzhangyxi
+ * @since 2026/5/16
+ */
+public enum HotKeyStatus {
+    DETECTED,
+    REPLICATING,
+    REPLICATE_PARTIAL_FINISHED,
+    ACTIVE,
+    COOLING_DOWN,
+    INVALID
 }

@@ -19,6 +19,21 @@
       "name": "business.password",
       "type": "java.lang.String",
       "description": "Business data redis password."
+    },
+    {
+      "name": "hotkey.absolute-qps-threshold",
+      "type": "java.lang.Integer",
+      "description": "Absolute QPS threshold for hot key detection."
+    },
+    {
+      "name": "hotkey.relative-qps-threshold",
+      "type": "java.lang.Integer",
+      "description": "Relative QPS threshold for hot key detection."
+    },
+    {
+      "name": "hotkey.relative-qps-ratio",
+      "type": "java.lang.Double",
+      "description": "Relative QPS ratio for hot key detection."
     }
   ]
 }

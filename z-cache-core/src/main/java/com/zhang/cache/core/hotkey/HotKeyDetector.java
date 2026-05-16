@@ -17,7 +17,11 @@
 package com.zhang.cache.core.hotkey;
 
 import com.zhang.cache.core.constant.HotKeyConstants;
+import com.zhang.cache.core.event.EventPublisher;
+import com.zhang.cache.core.event.entity.HotKeyDetectionEvent;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -36,7 +40,7 @@ import java.util.concurrent.atomic.LongAdder;
  */
 @Component
 @Slf4j
-public class HotKeyManager {
+public class HotKeyDetector {
     private volatile Map<String, LongAdder> currentBucket;
     /**
      * Use a circular array for rolling index update, achieve a sliding window in O(1) space.
@@ -75,6 +79,16 @@ public class HotKeyManager {
         }
         currentBucket = hotKeyBuckets[0];
     }
+
+    @Autowired
+    private EventPublisher eventPublisher;
+
+    @Value("${hot-key.absolute-threshold}")
+    private int absoluteQpsThreshold;
+    @Value("${hot-key.relative-qps-threshold}")
+    private int relativeQpsThreshold;
+    @Value("${hot-key.relative-qps-ratio}")
+    private double relativeQpsRatio;
 
     public void recordKey(String key) {
         Map<String, LongAdder> bucket = currentBucket;
@@ -137,7 +151,9 @@ public class HotKeyManager {
                 latestHotKeys.add(key);
             }
         }
-        hotKeys = Collections.unmodifiableSet(latestHotKeys);
+
+        hotKeys = latestHotKeys;
+        eventPublisher.publishEvent(new HotKeyDetectionEvent(hotKeys));
 
         log.debug("Hot key analysis finished. Current hot key count: {}", hotKeys.size());
     }
@@ -152,8 +168,8 @@ public class HotKeyManager {
 
     private boolean achieveHotKeyThreshold(long currentKeyTrafficCount, long totalTrafficCount) {
         int windowSize = initial ? Math.max(currentIndex, 1) : HotKeyConstants.HOT_KEY_WINDOW_SIZE;
-        int absoluteThreshold = HotKeyConstants.ABSOLUTE_HOT_KEY_QPS_THRESHOLD * windowSize;
-        int relativeThreshold = HotKeyConstants.RELATIVE_HOT_KEY_QPS_THRESHOLD * windowSize;
+        int absoluteThreshold = absoluteQpsThreshold * windowSize;
+        int relativeThreshold = relativeQpsThreshold * windowSize;
 
         if (currentKeyTrafficCount >= absoluteThreshold) {
             return true;
@@ -161,7 +177,7 @@ public class HotKeyManager {
         if (currentKeyTrafficCount >= relativeThreshold) {
             if (totalTrafficCount > 0) {
                 double ratio = (double) currentKeyTrafficCount / (double) totalTrafficCount;
-                return ratio >= HotKeyConstants.RELATIVE_HOT_KEY_QPS_RATIO_THRESHOLD;
+                return ratio >= relativeQpsRatio;
             }
         }
         return false;

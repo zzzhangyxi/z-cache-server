@@ -14,14 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.zhang.cache.core.event;
+package com.zhang.cache.core.metadata.hotkey;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 /**
-  * @author zzzhangyxi
-  * @since 2026/5/15
-  */
-public enum EventType {
-    CACHE_NODE_REFRESH,
-    HOT_KEY_METADATA_REFRESH,
-    READ_KEY,
-    WRITE_KEY
+ * @author zzzhangyxi
+ * @since 2026/5/16
+ */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class HotKeyMetadata {
+    private String key;
+    private HotKeyStatus status;
+    private long lastOperationTimestamp;
 }

@@ -14,14 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.zhang.cache.core.event;
+package com.zhang.cache.core.event.entity;
+
+import com.zhang.cache.core.event.BaseEventEntity;
+import com.zhang.cache.core.event.EventType;
+import com.zhang.cache.core.metadata.hotkey.HotKeyMetadata;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+
+import java.util.Map;
+
 /**
-  * @author zzzhangyxi
-  * @since 2026/5/15
-  */
-public enum EventType {
-    CACHE_NODE_REFRESH,
-    HOT_KEY_METADATA_REFRESH,
-    READ_KEY,
-    WRITE_KEY
+ * @author zzzhangyxi
+ * @since 2026/5/16
+ */
+@Data
+@EqualsAndHashCode(callSuper = true)
+@AllArgsConstructor
+public class HotKeyMetadataRefreshEvent extends BaseEventEntity {
+    private Map<String, HotKeyMetadata> hotKeyMetadataMap;
+
+    @Override
+    public EventType getEventType() {
+        return EventType.HOT_KEY_METADATA_REFRESH;
+    }
 }

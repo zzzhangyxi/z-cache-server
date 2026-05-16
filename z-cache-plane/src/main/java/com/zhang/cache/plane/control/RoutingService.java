@@ -19,7 +19,7 @@ package com.zhang.cache.plane.control;
 import com.zhang.cache.core.exception.NoAvailableNodeException;
 import com.zhang.cache.core.hash.HashRingManager;
 import com.zhang.cache.core.hash.HashUtils;
-import com.zhang.cache.core.hotkey.HotKeyManager;
+import com.zhang.cache.core.hotkey.HotKeyDetector;
 import com.zhang.cache.core.metadata.cachenode.CacheNodeMetadata;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.MapUtils;
@@ -39,7 +39,7 @@ public class RoutingService {
     @Autowired
     private HashRingManager hashRingManager;
     @Autowired
-    private HotKeyManager hotKeyManager;
+    private HotKeyDetector hotKeyManager;
 
     public CacheNodeMetadata route(String key) {
         boolean hotKey = hotKeyManager.isHotKey(key);

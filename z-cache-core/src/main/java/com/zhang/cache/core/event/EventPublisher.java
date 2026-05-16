@@ -50,6 +50,13 @@ public class EventPublisher {
             TimeUnit.SECONDS,
             new LinkedBlockingQueue<>(1000),
             new ThreadPoolExecutor.CallerRunsPolicy());
+    private static final Executor HOT_KEY_METADATA_REFRESH_EVENT_POOL = new ThreadPoolExecutor(
+            Runtime.getRuntime().availableProcessors() * 10,
+            Runtime.getRuntime().availableProcessors() * 30,
+            60L,
+            TimeUnit.SECONDS,
+            new LinkedBlockingQueue<>(1000),
+            new ThreadPoolExecutor.CallerRunsPolicy());
     private static final Executor READ_KEY_EVENT_POOL = new ThreadPoolExecutor(
             Runtime.getRuntime().availableProcessors() * 20,
             Runtime.getRuntime().availableProcessors() * 50,
@@ -68,6 +75,7 @@ public class EventPublisher {
     @PostConstruct
     private void init() {
         EXECUTORS.put(EventType.CACHE_NODE_REFRESH, CACHE_NODE_METADATA_REFRESH_EVENT_POOL);
+        EXECUTORS.put(EventType.HOT_KEY_METADATA_REFRESH, HOT_KEY_METADATA_REFRESH_EVENT_POOL);
         EXECUTORS.put(EventType.READ_KEY, READ_KEY_EVENT_POOL);
         EXECUTORS.put(EventType.WRITE_KEY, WRITE_KEY_EVENT_POOL);
     }
