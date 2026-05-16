@@ -52,10 +52,6 @@ public class HotKeyDetector {
      */
     private int currentIndex = 0;
     /**
-     * Calculate total traffic
-     */
-    private final LongAdder TOTAL_TRAFFIC = new LongAdder();
-    /**
      * For statistics. Based on the HOT_KEY_BUCKETS array, used for determining whether a key is a hot key.
      */
     private final Map<String, AtomicLong> AGGREGATION_COUNTER = new ConcurrentHashMap<>();
@@ -85,17 +81,12 @@ public class HotKeyDetector {
 
     @Value("${hot-key.absolute-qps-threshold}")
     private int absoluteQpsThreshold;
-    @Value("${hot-key.relative-qps-threshold}")
-    private int relativeQpsThreshold;
-    @Value("${hot-key.relative-qps-ratio}")
-    private double relativeQpsRatio;
 
     public void recordKey(String key) {
         Map<String, LongAdder> bucket = currentBucket;
         bucket.computeIfAbsent(key, k -> new LongAdder()).increment();
         // update traffic information
         AGGREGATION_COUNTER.computeIfAbsent(key, k -> new AtomicLong()).incrementAndGet();
-        TOTAL_TRAFFIC.increment();
     }
 
     public boolean isHotKey(String key) {
@@ -137,17 +128,15 @@ public class HotKeyDetector {
                     // clean up cold key
                     return remaining <= 0 ? null : counter;
                 });
-                TOTAL_TRAFFIC.add(-traffic);
             }
         }
 
         Set<String> latestHotKeys = new HashSet<>();
-        long totalTraffic = Math.max(TOTAL_TRAFFIC.sum(), 0L);
         for (Map.Entry<String, AtomicLong> aggregationBucketInfo : AGGREGATION_COUNTER.entrySet()) {
             String key = aggregationBucketInfo.getKey();
             long count = aggregationBucketInfo.getValue().get();
             // determine hot key
-            if (achieveHotKeyThreshold(count, totalTraffic)) {
+            if (achieveHotKeyThreshold(count)) {
                 latestHotKeys.add(key);
             }
         }
@@ -166,20 +155,10 @@ public class HotKeyDetector {
         firstBucketVisited = true;
     }
 
-    private boolean achieveHotKeyThreshold(long currentKeyTrafficCount, long totalTrafficCount) {
+    private boolean achieveHotKeyThreshold(long currentKeyTrafficCount) {
         int windowSize = initial ? Math.max(currentIndex, 1) : HotKeyConstants.HOT_KEY_WINDOW_SIZE;
         int absoluteThreshold = absoluteQpsThreshold * windowSize;
-        int relativeThreshold = relativeQpsThreshold * windowSize;
 
-        if (currentKeyTrafficCount >= absoluteThreshold) {
-            return true;
-        }
-        if (currentKeyTrafficCount >= relativeThreshold) {
-            if (totalTrafficCount > 0) {
-                double ratio = (double) currentKeyTrafficCount / (double) totalTrafficCount;
-                return ratio >= relativeQpsRatio;
-            }
-        }
-        return false;
+        return currentKeyTrafficCount >= absoluteThreshold;
     }
 }
