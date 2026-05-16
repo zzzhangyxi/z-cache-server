@@ -16,6 +16,9 @@
  */
 package com.zhang.cache.plane.data;
 
+import com.zhang.cache.core.event.EventPublisher;
+import com.zhang.cache.core.event.entity.ReadKeyEvent;
+import com.zhang.cache.core.event.entity.WriteKeyEvent;
 import com.zhang.cache.core.metadata.cachenode.CacheNodeMetadata;
 import com.zhang.cache.core.repository.ReadWriteRepository;
 import com.zhang.cache.plane.control.RoutingService;
@@ -32,24 +35,30 @@ public class ReadWriteService {
     private RoutingService routingService;
     @Autowired
     private ReadWriteRepository readWriteRepository;
+    @Autowired
+    private EventPublisher eventPublisher;
 
     public String get(String key) {
         CacheNodeMetadata routeMetadata = routingService.route(key);
+        eventPublisher.publishEvent(new ReadKeyEvent(key));
         return readWriteRepository.get(key, routeMetadata);
     }
 
     public void set(String key, String value) {
         CacheNodeMetadata routeMetadata = routingService.route(key);
         readWriteRepository.set(key, value, routeMetadata);
+        eventPublisher.publishEvent(new WriteKeyEvent(key));
     }
 
     public void setEx(String key, String value, int seconds) {
         CacheNodeMetadata routeMetadata = routingService.route(key);
         readWriteRepository.setEx(key, value, seconds, routeMetadata);
+        eventPublisher.publishEvent(new WriteKeyEvent(key));
     }
 
     public void delete(String key) {
         CacheNodeMetadata routeMetadata = routingService.route(key);
         readWriteRepository.del(key, routeMetadata);
+        eventPublisher.publishEvent(new WriteKeyEvent(key));
     }
 }

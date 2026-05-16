@@ -14,25 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.zhang.cache.core.event.entity;
+package com.zhang.cache.core.event.listener;
 
-import com.zhang.cache.core.event.BaseEventEntity;
-import com.zhang.cache.core.event.EventType;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
+import com.zhang.cache.core.event.EventListener;
+import com.zhang.cache.core.event.entity.WriteKeyEvent;
+import org.springframework.stereotype.Component;
 
 /**
  * @author zzzhangyxi
- * @since 2026/5/15
+ * @since 2026/5/16
  */
-@Data
-@EqualsAndHashCode(callSuper = true)
-@AllArgsConstructor
-public class WriteKeyEvent extends BaseEventEntity {
-    private String key;
+@Component
+public class WriteKeyEventListener implements EventListener<WriteKeyEvent> {
     @Override
-    public EventType getEventType() {
-        return EventType.WRITE_KEY;
+    public Class<WriteKeyEvent> supportType() {
+        return WriteKeyEvent.class;
+    }
+
+    @Override
+    public void onEvent(WriteKeyEvent event) {
+        // TODO 补充逻辑
     }
 }
