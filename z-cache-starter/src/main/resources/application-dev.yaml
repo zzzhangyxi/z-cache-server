@@ -6,6 +6,4 @@ business:
   password: zhang*2000
 hot-key:
   absolute-qps-threshold: 1
-  relative-qps-threshold: 1
-  relative-qps-ratio: 0.3
   cooling-down-time: 10000

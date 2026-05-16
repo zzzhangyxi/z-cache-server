@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.zhang.cache.plane.data;
+package com.zhang.cache.core.service;
 
 import com.zhang.cache.core.event.EventPublisher;
 import com.zhang.cache.core.event.entity.ReadKeyEvent;
 import com.zhang.cache.core.event.entity.WriteKeyEvent;
 import com.zhang.cache.core.metadata.cachenode.CacheNodeMetadata;
 import com.zhang.cache.core.repository.ReadWriteRepository;
-import com.zhang.cache.plane.control.RoutingService;
+import com.zhang.cache.core.hash.HashRouter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -32,7 +32,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class ReadWriteService {
     @Autowired
-    private RoutingService routingService;
+    private HashRouter routingService;
     @Autowired
     private ReadWriteRepository readWriteRepository;
     @Autowired

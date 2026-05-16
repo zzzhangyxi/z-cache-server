@@ -19,7 +19,7 @@ package com.zhang.cache.test;
 import com.zhang.cache.core.metadata.cachenode.CacheNodeMetadata;
 import com.zhang.cache.core.metadata.cachenode.CacheNodeStatus;
 import com.zhang.cache.interfaces.business.ReadWriteRepositoryClientManager;
-import com.zhang.cache.plane.data.ReadWriteService;
+import com.zhang.cache.core.service.ReadWriteService;
 import io.lettuce.core.api.sync.RedisCommands;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;

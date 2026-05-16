@@ -10,7 +10,6 @@
     <packaging>pom</packaging>
     <modules>
         <module>z-cache-core</module>
-        <module>z-cache-plane</module>
         <module>z-cache-starter</module>
         <module>z-cache-interface</module>
     </modules>
@@ -26,11 +25,6 @@
             <dependency>
                 <groupId>com.zhang</groupId>
                 <artifactId>z-cache-core</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
-            </dependency>
-            <dependency>
-                <groupId>com.zhang</groupId>
-                <artifactId>z-cache-plane</artifactId>
                 <version>0.0.1-SNAPSHOT</version>
             </dependency>
             <dependency>

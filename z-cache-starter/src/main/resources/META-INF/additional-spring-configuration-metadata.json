@@ -26,16 +26,6 @@
       "description": "Absolute QPS threshold for hot key detection."
     },
     {
-      "name": "hotkey.relative-qps-threshold",
-      "type": "java.lang.Integer",
-      "description": "Relative QPS threshold for hot key detection."
-    },
-    {
-      "name": "hotkey.relative-qps-ratio",
-      "type": "java.lang.Double",
-      "description": "Relative QPS ratio for hot key detection."
-    },
-    {
       "name": "hotkey.cooling-down-time",
       "type": "java.lang.Long",
       "description": "Time duration for clearing expired cool down keys."

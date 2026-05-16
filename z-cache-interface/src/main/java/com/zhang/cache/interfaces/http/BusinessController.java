@@ -19,7 +19,7 @@ package com.zhang.cache.interfaces.http;
 import com.alibaba.fastjson.JSON;
 import com.zhang.cache.core.exception.InvalidParamException;
 import com.zhang.cache.interfaces.http.dto.BusinessWriteRequestDTO;
-import com.zhang.cache.plane.data.ReadWriteService;
+import com.zhang.cache.core.service.ReadWriteService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;

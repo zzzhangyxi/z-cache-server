@@ -29,7 +29,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class ReadKeyEventListener implements EventListener<ReadKeyEvent> {
     @Autowired
-    private HotKeyDetector hotKeyManager;
+    private HotKeyDetector hotKeyDetector;
 
     @Override
     public Class<ReadKeyEvent> supportType() {
@@ -38,6 +38,6 @@ public class ReadKeyEventListener implements EventListener<ReadKeyEvent> {
 
     @Override
     public void onEvent(ReadKeyEvent event) {
-        hotKeyManager.recordKey(event.getKey());
+        hotKeyDetector.recordKey(event.getKey());
     }
 }

@@ -14,11 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.zhang.cache.plane.control;
+package com.zhang.cache.core.hash;
 
 import com.zhang.cache.core.exception.NoAvailableNodeException;
-import com.zhang.cache.core.hash.HashRingManager;
-import com.zhang.cache.core.hash.HashUtils;
 import com.zhang.cache.core.hotkey.HotKeyDetector;
 import com.zhang.cache.core.metadata.cachenode.CacheNodeMetadata;
 import lombok.extern.slf4j.Slf4j;
@@ -35,14 +33,14 @@ import java.util.NavigableMap;
  */
 @Slf4j
 @Service
-public class RoutingService {
+public class HashRouter {
     @Autowired
     private HashRingManager hashRingManager;
     @Autowired
-    private HotKeyDetector hotKeyManager;
+    private HotKeyDetector hotKeyDetector;
 
     public CacheNodeMetadata route(String key) {
-        boolean hotKey = hotKeyManager.isHotKey(key);
+        boolean hotKey = hotKeyDetector.isHotKey(key);
         return hotKey ? hotKeyRoute(key) : basicRoute(key);
     }
 

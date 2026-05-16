@@ -20,7 +20,7 @@
     <dependencies>
         <dependency>
             <groupId>com.zhang</groupId>
-            <artifactId>z-cache-plane</artifactId>
+            <artifactId>z-cache-core</artifactId>
         </dependency>
 
         <dependency>

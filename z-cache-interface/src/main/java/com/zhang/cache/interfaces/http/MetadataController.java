@@ -17,7 +17,7 @@
 package com.zhang.cache.interfaces.http;
 
 import com.zhang.cache.interfaces.http.dto.MetadataRegisterRequestDTO;
-import com.zhang.cache.plane.control.MetadataService;
+import com.zhang.cache.core.service.MetadataService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
