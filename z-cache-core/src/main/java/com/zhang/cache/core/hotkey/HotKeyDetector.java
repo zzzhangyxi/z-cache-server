@@ -83,7 +83,7 @@ public class HotKeyDetector {
     @Autowired
     private EventPublisher eventPublisher;
 
-    @Value("${hot-key.absolute-threshold}")
+    @Value("${hot-key.absolute-qps-threshold}")
     private int absoluteQpsThreshold;
     @Value("${hot-key.relative-qps-threshold}")
     private int relativeQpsThreshold;

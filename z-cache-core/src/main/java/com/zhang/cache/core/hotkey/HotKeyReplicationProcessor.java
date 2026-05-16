@@ -14,14 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.zhang.cache.core.event.listener;
+package com.zhang.cache.core.hotkey;
 
-import com.zhang.cache.core.event.EventListener;
-import com.zhang.cache.core.event.entity.HotKeyMetadataRefreshEvent;
+import com.zhang.cache.core.metadata.CacheNodeMetadataManager;
+import com.zhang.cache.core.metadata.HotKeyMetadataManager;
+import com.zhang.cache.core.metadata.cachenode.CacheNodeMetadata;
 import com.zhang.cache.core.metadata.hotkey.HotKeyMetadata;
-import com.zhang.cache.core.repository.MetadataRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.MapUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
@@ -31,24 +33,27 @@ import java.util.Map;
  * @since 2026/5/16
  */
 @Component
-public class HotKeyMetadataRefreshEventListener implements EventListener<HotKeyMetadataRefreshEvent> {
+@Slf4j
+public class HotKeyReplicationProcessor {
     @Autowired
-    private MetadataRepository metadataRepository;
+    private CacheNodeMetadataManager cacheNodeMetadataManager;
+    @Autowired
+    private HotKeyMetadataManager hotKeyMetadataManager;
 
-    @Override
-    public Class<HotKeyMetadataRefreshEvent> supportType() {
-        return HotKeyMetadataRefreshEvent.class;
-    }
-
-    @Override
-    public void onEvent(HotKeyMetadataRefreshEvent event) {
-        Map<String, HotKeyMetadata> hotKeyMetadataMap = event.getHotKeyMetadataMap();
-        if (MapUtils.isEmpty(hotKeyMetadataMap)) {
+    @Scheduled(fixedRate = 1000)
+    public void replicateDetectedHotKeys() {
+        Map<String, HotKeyMetadata> allHotKeys = hotKeyMetadataManager.getHotKeyMetadataMap();
+        if (MapUtils.isEmpty(allHotKeys)) {
+            log.info("No hot keys, do not need to replication.");
             return;
         }
-        for (Map.Entry<String, HotKeyMetadata> entry : hotKeyMetadataMap.entrySet()) {
-            HotKeyMetadata hotKeyMetadata = entry.getValue();
-            metadataRepository.updateHotKeyMetadata(hotKeyMetadata);
+
+        Map<String, CacheNodeMetadata> allNodes = cacheNodeMetadataManager.getAllCacheNodeMetadata();
+        if (MapUtils.isEmpty(allNodes) || allNodes.size() == 1) {
+            log.info("No available replica nodes found. Stop replication.");
+            return;
         }
+
+        System.out.println("replicating......");
     }
 }

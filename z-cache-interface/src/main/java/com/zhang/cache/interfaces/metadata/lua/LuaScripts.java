@@ -14,32 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.zhang.cache.core.event.listener;
-
-import com.zhang.cache.core.event.EventListener;
-import com.zhang.cache.core.event.entity.HotKeyDetectionEvent;
-import com.zhang.cache.core.metadata.HotKeyMetadataManager;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
+package com.zhang.cache.interfaces.metadata.lua;
 
 /**
  * @author zzzhangyxi
  * @since 2026/5/16
  */
-@Component
-@Slf4j
-public class HotKeyDetectionEventListener implements EventListener<HotKeyDetectionEvent> {
-    @Autowired
-    private HotKeyMetadataManager hotKeyLifecycleManager;
-
-    @Override
-    public Class<HotKeyDetectionEvent> supportType() {
-        return HotKeyDetectionEvent.class;
-    }
-
-    @Override
-    public void onEvent(HotKeyDetectionEvent event) {
-        hotKeyLifecycleManager.updateLocalHotKeyMetadata(event.getHotKeys());
-    }
+public class LuaScripts {
+    @SuppressWarnings("all")
+    public static final String HOT_KEY_METADATA_UPDATE_SCRIPT =
+            "local oldTs = redis.call('HGET', KEYS[1], 'last_operation_timestamp') " +
+                    "if (not oldTs) or (tonumber(ARGV[1]) > tonumber(oldTs)) then " +
+                    "   redis.call('HSET', KEYS[1], " +
+                    "       'key', ARGV[2], " +
+                    "       'status', ARGV[3], " +
+                    "       'last_operation_timestamp', ARGV[1]) " +
+                    "   return 1 " +
+                    "end " +
+                    "return 0";
 }

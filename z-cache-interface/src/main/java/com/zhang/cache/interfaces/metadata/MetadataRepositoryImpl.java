@@ -22,6 +22,8 @@ import com.zhang.cache.core.metadata.cachenode.CacheNodeMetadata;
 import com.zhang.cache.core.metadata.hotkey.HotKeyMetadata;
 import com.zhang.cache.core.repository.MetadataRepository;
 import com.zhang.cache.interfaces.RedisConstants;
+import com.zhang.cache.interfaces.metadata.lua.LuaScripts;
+import io.lettuce.core.ScriptOutputType;
 import io.lettuce.core.api.sync.RedisCommands;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.MapUtils;
@@ -63,11 +65,15 @@ public class MetadataRepositoryImpl implements MetadataRepository {
     @Override
     public void updateHotKeyMetadata(HotKeyMetadata hotKeyMetadata) {
         String key = hotKeyMetadata.getKey();
+        String hotKeyMetadataKey = HotKeyConstants.HOT_KEY_PREFIX + key;
 
-        Map<String, String> hotKeyInfo = new HashMap<>();
-        hotKeyInfo.put(HotKeyConstants.HOT_KEY_INFO_KEY, key);
-        hotKeyInfo.put(HotKeyConstants.HOT_KEY_INFO_STATUS, hotKeyMetadata.getStatus().name());
-        hotKeyInfo.put(HotKeyConstants.HOT_KEY_INFO_TIMESTAMP, String.valueOf(hotKeyMetadata.getLastOperationTimestamp()));
-        redisCommands.hset(HotKeyConstants.HOT_KEY_PREFIX + key, hotKeyInfo);
+        // use the lua script to update metadata atomically, avoid new version data being covered by old version data.
+        redisCommands.eval(
+                LuaScripts.HOT_KEY_METADATA_UPDATE_SCRIPT,
+                ScriptOutputType.INTEGER,
+                new String[]{hotKeyMetadataKey},
+                String.valueOf(hotKeyMetadata.getLastOperationTimestamp()),
+                key,
+                hotKeyMetadata.getStatus().name());
     }
 }

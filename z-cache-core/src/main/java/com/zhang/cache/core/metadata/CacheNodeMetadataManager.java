@@ -34,7 +34,7 @@ import java.util.Map;
  */
 @Slf4j
 @Component
-public class MetadataManager {
+public class CacheNodeMetadataManager {
     @Autowired
     private MetadataRepository metadataRepository;
     @Autowired
@@ -42,7 +42,7 @@ public class MetadataManager {
 
     /**
      * Do not need to use ConcurrentHashMap, HashMap is enough for a metadata read and update scenario.<br>
-     * {@link MetadataManager#startScheduledRefreshLocalMetadata()} is the only entrance which can update local metadata cache,
+     * {@link CacheNodeMetadataManager#startScheduledRefreshLocalMetadata()} is the only entrance which can update local metadata cache,
      * so concurrent issues does not exist here.<br>
      * Volatile keyword is necessary to avoid visibility issues.
      */

@@ -63,6 +63,6 @@ public class RoutingService {
 
     public CacheNodeMetadata hotKeyRoute(String key) {
         // TODO 热点key路由逻辑
-        return null;
+        return basicRoute(key);
     }
 }

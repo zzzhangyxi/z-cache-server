@@ -17,7 +17,7 @@
 package com.zhang.cache.core.hash;
 
 import com.zhang.cache.core.constant.HashRingConstants;
-import com.zhang.cache.core.metadata.MetadataManager;
+import com.zhang.cache.core.metadata.CacheNodeMetadataManager;
 import com.zhang.cache.core.metadata.cachenode.CacheNodeMetadata;
 import com.zhang.cache.core.metadata.cachenode.CacheNodeStatus;
 import lombok.Getter;
@@ -40,7 +40,7 @@ public class HashRingManager {
     private volatile NavigableMap<Long, CacheNodeMetadata> hashRing = new TreeMap<>();
 
     @Autowired
-    private MetadataManager metadataManager;
+    private CacheNodeMetadataManager metadataManager;
 
     public void rebuildHashRing() {
         NavigableMap<Long, CacheNodeMetadata> newHashRing = new TreeMap<>();

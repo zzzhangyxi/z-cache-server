@@ -34,6 +34,11 @@
       "name": "hotkey.relative-qps-ratio",
       "type": "java.lang.Double",
       "description": "Relative QPS ratio for hot key detection."
+    },
+    {
+      "name": "hotkey.cooling-down-time",
+      "type": "java.lang.Long",
+      "description": "Time duration for clearing expired cool down keys."
     }
   ]
 }
