@@ -28,5 +28,4 @@ import java.io.Serializable;
 public class BusinessWriteRequestDTO implements Serializable {
     private String key;
     private String value;
-    private Integer expireSeconds;
 }

@@ -93,6 +93,18 @@ public class HotKeyDetector {
         return hotKeys.contains(key);
     }
 
+    public long getHotKeyAverageQps(String key) {
+        if (!isHotKey(key)) {
+            return 0L;
+        }
+        long totalQps = 0L;
+        for (Map<String, LongAdder> hotKeyBucket : hotKeyBuckets) {
+            long qps = hotKeyBucket.getOrDefault(key, new LongAdder()).sum();
+            totalQps += qps;
+        }
+        return totalQps / getEffectWindowSize();
+    }
+
     /**
      * Rotates the sliding window bucket and performs hot key analysis.<br>
      * To avoid global synchronization overhead and potential writer starvation under high QPS scenarios, bucket
@@ -156,9 +168,13 @@ public class HotKeyDetector {
     }
 
     private boolean achieveHotKeyThreshold(long currentKeyTrafficCount) {
-        int windowSize = initial ? Math.max(currentIndex, 1) : HotKeyConstants.HOT_KEY_WINDOW_SIZE;
+        int windowSize = getEffectWindowSize();
         int absoluteThreshold = absoluteQpsThreshold * windowSize;
 
         return currentKeyTrafficCount >= absoluteThreshold;
+    }
+
+    private int getEffectWindowSize() {
+        return initial ? Math.max(currentIndex, 1) : HotKeyConstants.HOT_KEY_WINDOW_SIZE;
     }
 }

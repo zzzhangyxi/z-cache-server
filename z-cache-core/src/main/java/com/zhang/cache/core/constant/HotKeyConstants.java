@@ -23,7 +23,5 @@ package com.zhang.cache.core.constant;
 public class HotKeyConstants {
     public static final int HOT_KEY_WINDOW_SIZE = 10;
     public static final String HOT_KEY_PREFIX = "hotkey:info:";
-    public static final String HOT_KEY_INFO_KEY = "key";
-    public static final String HOT_KEY_INFO_STATUS = "status";
-    public static final String HOT_KEY_INFO_TIMESTAMP = "time";
+    public static final String HOT_KEY_REPLICATION_PREFIX = "hotkey:replication:";
 }

@@ -49,15 +49,8 @@ public class BusinessController {
 
     @PostMapping("/write")
     public String write(@RequestBody BusinessWriteRequestDTO request) {
-        validateParam(request, false);
+        validateParam(request);
         readWriteService.set(request.getKey(), request.getValue());
-        return "success";
-    }
-
-    @PostMapping("/write-ex")
-    public String writeEx(@RequestBody BusinessWriteRequestDTO request) {
-        validateParam(request, true);
-        readWriteService.setEx(request.getKey(), request.getValue(), request.getExpireSeconds());
         return "success";
     }
 
@@ -67,11 +60,8 @@ public class BusinessController {
         return "success";
     }
 
-    private void validateParam(BusinessWriteRequestDTO request, boolean needExpireTime) {
+    private void validateParam(BusinessWriteRequestDTO request) {
         boolean valid = StringUtils.isNotBlank(request.getKey()) && StringUtils.isNotBlank(request.getValue());
-        if (needExpireTime && request.getExpireSeconds() == null) {
-            valid = false;
-        }
         if (!valid) {
             log.error("Invalid request param:[{}]", JSON.toJSONString(request));
             throw new InvalidParamException("Invalid request param");

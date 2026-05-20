@@ -14,30 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.zhang.cache.core.repository;
+package com.zhang.cache.core.metadata.hotkey;
 
 import com.zhang.cache.core.metadata.cachenode.CacheNodeMetadata;
-import com.zhang.cache.core.metadata.hotkey.HotKeyMetadata;
-import com.zhang.cache.core.metadata.hotkey.HotKeyReplicationMetadata;
+import lombok.Builder;
+import lombok.Data;
 
-import javax.annotation.Nullable;
-import java.util.Map;
+import java.util.List;
 
 /**
  * @author zzzhangyxi
- * @since 2026/5/13
+ * @since 2026/5/17
  */
-public interface MetadataRepository {
-    @Nullable
-    String lockForReplication(String key);
-
-    void unlockForReplication(String hotKey, String lockId);
-
-    Map<String, CacheNodeMetadata> getAllCacheNodeMetadata();
-
-    void register(CacheNodeMetadata cacheNodeMetadata);
-
-    void updateHotKeyMetadata(HotKeyMetadata hotKeyMetadata);
-
-    void updateHotKeyReplicaNodes(HotKeyReplicationMetadata hotKeyReplicationMetadata);
+@Data
+@Builder
+public class HotKeyReplicationMetadata {
+    private String key;
+    private List<CacheNodeMetadata> replicationNodes;
+    private long lastOperationTimestamp;
 }

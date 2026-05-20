@@ -39,26 +39,44 @@ public class ReadWriteService {
     private EventPublisher eventPublisher;
 
     public String get(String key) {
-        CacheNodeMetadata routeMetadata = routingService.route(key);
+        return get(key, null);
+    }
+
+    public String get(String key, CacheNodeMetadata node) {
+        if (node == null) {
+            node = routingService.route(key);
+        }
         eventPublisher.publishEvent(new ReadKeyEvent(key));
-        return readWriteRepository.get(key, routeMetadata);
+        return readWriteRepository.get(key, node);
     }
 
     public void set(String key, String value) {
-        CacheNodeMetadata routeMetadata = routingService.route(key);
-        readWriteRepository.set(key, value, routeMetadata);
-        eventPublisher.publishEvent(new WriteKeyEvent(key));
+        set(key, value, null);
     }
 
-    public void setEx(String key, String value, int seconds) {
-        CacheNodeMetadata routeMetadata = routingService.route(key);
-        readWriteRepository.setEx(key, value, seconds, routeMetadata);
-        eventPublisher.publishEvent(new WriteKeyEvent(key));
+    public void set(String key, String value, CacheNodeMetadata node) {
+        boolean specifyNode = node != null;
+        if (!specifyNode) {
+            node = routingService.route(key);
+        }
+        readWriteRepository.set(key, value, node);
+        if (!specifyNode) {
+            eventPublisher.publishEvent(new WriteKeyEvent(key));
+        }
     }
 
     public void delete(String key) {
-        CacheNodeMetadata routeMetadata = routingService.route(key);
-        readWriteRepository.del(key, routeMetadata);
-        eventPublisher.publishEvent(new WriteKeyEvent(key));
+        delete(key, null);
+    }
+
+    public void delete(String key, CacheNodeMetadata node) {
+        boolean specifyNode = node != null;
+        if (!specifyNode) {
+            node = routingService.route(key);
+        }
+        readWriteRepository.del(key, node);
+        if (!specifyNode) {
+            eventPublisher.publishEvent(new WriteKeyEvent(key));
+        }
     }
 }

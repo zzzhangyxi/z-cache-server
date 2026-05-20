@@ -84,6 +84,7 @@ public class HotKeyMetadataManager {
 
         hotKeyMetadataMap = newHotKeyMetadata;
 
+        // TODO 这部分逻辑删掉，放到定时任务里面统一管理
         Map<String, HotKeyMetadata> needToUpdateHotKeys = new HashMap<>(hotKeyMetadataMap);
         for (String coolingDownKey : coolingDownKeys) {
             HotKeyMetadata hotKeyMetadata = HotKeyMetadata.builder()
@@ -100,7 +101,9 @@ public class HotKeyMetadataManager {
     }
 
     @Scheduled(fixedRate = 1000)
-    public void checkAndRemoveExpiredCoolDownHotKeys() {
+    public void updateLocalHotKeyMetadata() {
+        // TODO 读远程Metadata并合并更新本地
+
         Map<String, HotKeyMetadata> expiredCoolDownHotKeys = new HashMap<>();
 
         long now = System.currentTimeMillis();
