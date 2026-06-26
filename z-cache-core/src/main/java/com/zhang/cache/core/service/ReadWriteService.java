@@ -32,7 +32,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class ReadWriteService {
     @Autowired
-    private HashRouter routingService;
+    private HashRouter hashRouter;
     @Autowired
     private ReadWriteRepository readWriteRepository;
     @Autowired
@@ -44,7 +44,7 @@ public class ReadWriteService {
 
     public String get(String key, CacheNodeMetadata node) {
         if (node == null) {
-            node = routingService.route(key);
+            node = hashRouter.route(key);
         }
         eventPublisher.publishEvent(new ReadKeyEvent(key));
         return readWriteRepository.get(key, node);
@@ -57,7 +57,7 @@ public class ReadWriteService {
     public void set(String key, String value, CacheNodeMetadata node) {
         boolean specifyNode = node != null;
         if (!specifyNode) {
-            node = routingService.route(key);
+            node = hashRouter.route(key);
         }
         readWriteRepository.set(key, value, node);
         if (!specifyNode) {
@@ -72,7 +72,7 @@ public class ReadWriteService {
     public void delete(String key, CacheNodeMetadata node) {
         boolean specifyNode = node != null;
         if (!specifyNode) {
-            node = routingService.route(key);
+            node = hashRouter.route(key);
         }
         readWriteRepository.del(key, node);
         if (!specifyNode) {
