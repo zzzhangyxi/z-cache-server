@@ -114,7 +114,7 @@ public class HotKeyDetector {
      * hot key statistics.
      */
     @Scheduled(fixedRate = 1000)
-    public void analyzeHotKey() {
+    public void analyzeLocalHotKey() {
         // update index for the circular array
         currentIndex = (currentIndex + 1) % HotKeyConstants.HOT_KEY_WINDOW_SIZE;
         updateVisitInformation(currentIndex);

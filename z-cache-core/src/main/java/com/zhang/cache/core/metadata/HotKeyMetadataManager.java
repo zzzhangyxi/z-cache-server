@@ -20,6 +20,7 @@ import com.zhang.cache.core.event.EventPublisher;
 import com.zhang.cache.core.event.entity.HotKeyMetadataRefreshEvent;
 import com.zhang.cache.core.metadata.hotkey.HotKeyMetadata;
 import com.zhang.cache.core.metadata.hotkey.HotKeyStatus;
+import com.zhang.cache.core.repository.MetadataRepository;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,6 +50,9 @@ public class HotKeyMetadataManager {
 
     @Autowired
     private EventPublisher eventPublisher;
+
+    @Autowired
+    private MetadataRepository metadataRepository;
 
     public void updateLocalHotKeyMetadata(Set<String> hotKeys) {
         Set<String> lastHotKeys = new HashSet<>(hotKeyMetadataMap.keySet());
@@ -103,6 +107,7 @@ public class HotKeyMetadataManager {
     @Scheduled(fixedRate = 1000)
     public void updateLocalHotKeyMetadata() {
         // TODO 读远程Metadata并合并更新本地
+        Map<String, HotKeyMetadata> allHotKeyMetadata = metadataRepository.getAllHotKeyMetadata();
 
         Map<String, HotKeyMetadata> expiredCoolDownHotKeys = new HashMap<>();
 
