@@ -10,8 +10,9 @@
     <packaging>pom</packaging>
     <modules>
         <module>z-cache-core</module>
-        <module>z-cache-starter</module>
+        <module>z-cache-reporter</module>
         <module>z-cache-interface</module>
+        <module>z-cache-coordinator</module>
     </modules>
 
     <properties>
