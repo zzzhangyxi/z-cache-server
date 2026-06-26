@@ -37,6 +37,8 @@ public interface MetadataRepository {
 
     void register(CacheNodeMetadata cacheNodeMetadata);
 
+    Map<String, HotKeyMetadata> getAllHotKeyMetadata();
+
     void updateHotKeyMetadata(HotKeyMetadata hotKeyMetadata);
 
     void updateHotKeyReplicaNodes(HotKeyReplicationMetadata hotKeyReplicationMetadata);
