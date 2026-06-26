@@ -21,6 +21,8 @@ package com.zhang.cache.interfaces;
  * @since 2026/5/13
  */
 public class RedisConstants {
-    public static final String CACHE_NODE_METADATA_KEY = "cache:metadata:info";
+    public static final String CACHE_NODE_METADATA_KEY = "cache:metadata";
+    public static final String HOT_KEY_METADATA_KEY = "hotkey:metadata";
+    public static final String HOT_KEY_REPLICATION_PREFIX = "hotkey:replication:";
     public static final String BUSINESS_DATA_KEY_PREFIX = "business:";
 }
