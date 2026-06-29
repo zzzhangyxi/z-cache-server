@@ -19,6 +19,7 @@ package com.zhang.cache.core.hash;
 import com.zhang.cache.core.constant.HashRingConstants;
 import com.zhang.cache.core.metadata.cachenode.CacheNodeMetadataManager;
 import com.zhang.cache.core.metadata.cachenode.entity.CacheNodeMetadata;
+import com.zhang.cache.core.metadata.cachenode.entity.CacheNodeRuntimeMetadata;
 import com.zhang.cache.core.metadata.cachenode.entity.CacheNodeStatus;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -46,10 +47,19 @@ public class HashRingManager {
         NavigableMap<Long, CacheNodeMetadata> newHashRing = new TreeMap<>();
 
         Map<String, CacheNodeMetadata> cacheNodeMetadata = metadataManager.getCacheNodeMetadata();
+        Map<String, CacheNodeRuntimeMetadata> cacheNodeRuntimeMetadata = metadataManager.getCacheNodeRuntimeMetadata();
+
         for (Map.Entry<String, CacheNodeMetadata> metadataEntry : cacheNodeMetadata.entrySet()) {
+            String nodeId = metadataEntry.getKey();
             CacheNodeMetadata nodeMetadata = metadataEntry.getValue();
 
-            if (CacheNodeStatus.isNotOnline(nodeMetadata.getStatus())) {
+            CacheNodeRuntimeMetadata runtimeMetadata = cacheNodeRuntimeMetadata.get(nodeId);
+            if (runtimeMetadata == null) {
+                log.info("Node id:[{}], does not have runtime metadata", nodeId);
+                continue;
+            }
+
+            if (CacheNodeStatus.isNotOnline(runtimeMetadata.getStatus())) {
                 // only online nodes should be added into the hash ring
                 continue;
             }

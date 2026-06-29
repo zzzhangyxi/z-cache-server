@@ -52,6 +52,11 @@ public class BusinessRepositoryImpl implements BusinessRepository {
         getConnection(metadata).del(wrapKey(key));
     }
 
+    @Override
+    public String ping(CacheNodeMetadata node) {
+        return getConnection(node).ping();
+    }
+
     private RedisCommands<String, String> getConnection(CacheNodeMetadata metadata) {
         return businessRepositoryClientManager.getConnection(metadata);
     }

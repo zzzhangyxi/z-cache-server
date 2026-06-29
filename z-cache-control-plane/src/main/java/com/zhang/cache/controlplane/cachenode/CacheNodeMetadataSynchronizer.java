@@ -47,13 +47,14 @@ public class CacheNodeMetadataSynchronizer {
      * Volatile keyword is necessary to avoid visibility issues.
      */
     @Scheduled(fixedRate = 5000)
-    public void startScheduledRefreshLocalMetadata() {
+    public synchronized void startScheduledRefreshLocalMetadata() {
         log.info("start to schedule refresh local metadata...");
+
         // use reference replacing to avoid concurrent issues and visibility issues.
         refreshLocalMetadata();
     }
 
-    public synchronized void refreshLocalMetadata() {
+    private void refreshLocalMetadata() {
         long refreshTimestamp = System.currentTimeMillis();
         Map<String, CacheNodeMetadata> cacheNodeMetadata = metadataRepository.getAllCacheNodeMetadata();
         if (refreshTimestamp > lastRefreshTime) {

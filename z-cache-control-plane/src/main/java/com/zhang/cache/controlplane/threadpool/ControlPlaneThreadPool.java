@@ -14,25 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.zhang.cache.core.metadata.cachenode.entity;
+package com.zhang.cache.controlplane.threadpool;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author zzzhangyxi
- * @since 2026/5/11
+ * @since 2026/6/29
  */
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class CacheNodeMetadata {
-    private String id;
-    private String ip;
-    private Integer port;
-    private Long startupTimestamp;
-    private Long version;
+public class ControlPlaneThreadPool {
+    private static final Executor HEARTBEAT_EXECUTOR = new ThreadPoolExecutor(
+            Runtime.getRuntime().availableProcessors(),
+            Runtime.getRuntime().availableProcessors(),
+            60,
+            TimeUnit.SECONDS,
+            new LinkedBlockingQueue<>(100),
+            Executors.defaultThreadFactory(),
+            new ThreadPoolExecutor.DiscardOldestPolicy());
+
+    public static Executor getHeartbeatExecutor() {
+        return HEARTBEAT_EXECUTOR;
+    }
 }

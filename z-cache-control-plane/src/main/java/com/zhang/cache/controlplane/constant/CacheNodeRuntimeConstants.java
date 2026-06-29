@@ -14,25 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.zhang.cache.core.metadata.cachenode.entity;
-
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+package com.zhang.cache.controlplane.constant;
 
 /**
  * @author zzzhangyxi
- * @since 2026/5/11
+ * @since 2026/6/29
  */
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class CacheNodeMetadata {
-    private String id;
-    private String ip;
-    private Integer port;
-    private Long startupTimestamp;
-    private Long version;
+public class CacheNodeRuntimeConstants {
+    public static final int HEARTBEAT_OFFLINE_THRESHOLD = 3;
 }

@@ -23,7 +23,13 @@ import lombok.Data;
  * @since 2026/5/11
  */
 @Data
-public class CacheNodeHeartbeat {
+public class CacheNodeRuntimeMetadata {
     private String id;
+    private CacheNodeStatus status;
     private Long lastHeartbeatTimestamp;
+    private Integer failedTimes;
+
+    public boolean needDetectHeartbeat() {
+        return CacheNodeStatus.needDetectHeartbeat(status);
+    }
 }

@@ -19,9 +19,9 @@ package com.zhang.cache.interfaces.metadata;
 import com.alibaba.fastjson.JSON;
 import com.zhang.cache.core.identity.NodeIdentityGenerator;
 import com.zhang.cache.core.metadata.cachenode.entity.CacheNodeMetadata;
+import com.zhang.cache.core.metadata.cachenode.entity.CacheNodeRuntimeMetadata;
 import com.zhang.cache.core.metadata.hotkey.entity.HotKeyMetadata;
 import com.zhang.cache.core.metadata.hotkey.entity.HotKeyReplicationMetadata;
-import com.zhang.cache.core.metadata.hotkey.HotKeyStatus;
 import com.zhang.cache.core.repository.MetadataRepository;
 import com.zhang.cache.interfaces.RedisConstants;
 import com.zhang.cache.interfaces.metadata.lua.LuaScripts;
@@ -35,9 +35,6 @@ import org.springframework.stereotype.Repository;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 /**
  * @author zzzhangyxi
@@ -94,21 +91,27 @@ public class MetadataRepositoryImpl implements MetadataRepository {
     }
 
     @Override
+    public Map<String, CacheNodeRuntimeMetadata> getAllCacheNodeRuntimeMetadata() {
+        Map<String, String> rawData = redisCommands.hgetall(RedisConstants.CACHE_NODE_RUNTIME_KEY);
+        Map<String, CacheNodeRuntimeMetadata> cacheNodeRuntimeMetadata = new HashMap<>();
+        if (MapUtils.isNotEmpty(rawData)) {
+            rawData.forEach((nodeId, runtimeMetadata) ->  {
+                if (StringUtils.isBlank(nodeId) || StringUtils.isBlank(runtimeMetadata)) {
+                    return;
+                }
+                CacheNodeRuntimeMetadata runtime = JSON.parseObject(runtimeMetadata, CacheNodeRuntimeMetadata.class);
+                cacheNodeRuntimeMetadata.put(nodeId, runtime);
+            });
+        }
+        log.info("Heartbeat runtime metadata:[{}]", JSON.toJSONString(cacheNodeRuntimeMetadata));
+        return cacheNodeRuntimeMetadata;
+    }
+
+    @Override
     public void register(CacheNodeMetadata cacheNodeMetadata) {
         String nodeId = cacheNodeMetadata.getId();
         String metadata = JSON.toJSONString(cacheNodeMetadata);
         redisCommands.hset(RedisConstants.CACHE_NODE_METADATA_KEY, nodeId, metadata);
-    }
-
-    @Override
-    public Map<String, HotKeyMetadata> getAllHotKeyMetadata() {
-        Map<String, String> rawData = redisCommands.hgetall(RedisConstants.HOT_KEY_METADATA_KEY);
-        Map<String, HotKeyMetadata> hotKeyMetadata = new HashMap<>();
-        if (MapUtils.isNotEmpty(rawData)) {
-            hotKeyMetadata = parseHotKeyRawMetadata(rawData);
-        }
-        log.info("Cache hotkey metadata:[{}]", JSON.toJSONString(hotKeyMetadata));
-        return hotKeyMetadata;
     }
 
     @Override
@@ -131,46 +134,9 @@ public class MetadataRepositoryImpl implements MetadataRepository {
                 JSON.toJSONString(hotKeyReplicationMetadata.getReplicationNodes()));
     }
 
-    private Map<String, HotKeyMetadata> parseHotKeyRawMetadata(Map<String, String> rawData) {
-        return rawData.entrySet()
-                .stream()
-                .map(entry -> {
-                    if (entry == null) {
-                        return null;
-                    }
-                    String key = entry.getKey();
-                    String value = entry.getValue();
-                    if (StringUtils.isBlank(key) || StringUtils.isBlank(value)) {
-                        return null;
-                    }
-                    HotKeyMetadata metadata = new HotKeyMetadata();
-                    metadata.setKey(key);
-                    /* format of metadata value:
-                     * key: test; value: {STATUS}|{TIMESTAMP}
-                     * for example: ACTIVE|123456789
-                     */
-                    String[] values = value.split("\\|");
-                    HotKeyStatus status;
-                    long timestamp;
-                    if (values.length == 2) {
-                        String statusName = values[0];
-                        String timestampStr = values[1];
-                        status = HotKeyStatus.ofName(statusName);
-                        if (status == null) {
-                            log.error("Illegal status of hot key metadata:[{}], hot key:[{}]", statusName, key);
-                            return null;
-                        }
-                        timestamp = Long.parseLong(timestampStr);
-                        metadata.setStatus(status);
-                        metadata.setLastOperationTimestamp(timestamp);
-                    } else {
-                        // illegal data, need to be filtered
-                        log.error("Illegal format of hot key metadata:[{}], hot key:[{}]", value, key);
-                        return null;
-                    }
-
-                    return metadata;
-                }).filter(Objects::nonNull)
-                .collect(Collectors.toMap(HotKeyMetadata::getKey, Function.identity()));
+    @Override
+    public void updateCacheNodeRuntimeMetadata(CacheNodeRuntimeMetadata cacheNodeRuntimeMetadata) {
+        String jsonString = JSON.toJSONString(cacheNodeRuntimeMetadata);
+        redisCommands.hset(RedisConstants.CACHE_NODE_RUNTIME_KEY, cacheNodeRuntimeMetadata.getId(), jsonString);
     }
 }

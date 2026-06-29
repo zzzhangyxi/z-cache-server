@@ -27,6 +27,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.security.InvalidParameterException;
+import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -59,6 +60,7 @@ public class BusinessRepositoryClientManager {
                 .withHost(metadata.getIp())
                 .withPort(metadata.getPort())
                 .withPassword(password.toCharArray())
+                .withTimeout(Duration.ofSeconds(3L))
                 .build();
         try {
             StatefulRedisConnection<String, String> connection = REDIS.connect(redisURI);

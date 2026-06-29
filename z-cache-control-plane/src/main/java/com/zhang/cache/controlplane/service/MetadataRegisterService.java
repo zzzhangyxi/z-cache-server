@@ -17,6 +17,7 @@
 package com.zhang.cache.controlplane.service;
 
 import com.zhang.cache.core.metadata.cachenode.entity.CacheNodeMetadata;
+import com.zhang.cache.core.metadata.cachenode.entity.CacheNodeRuntimeMetadata;
 import com.zhang.cache.core.metadata.cachenode.entity.CacheNodeStatus;
 import com.zhang.cache.core.repository.MetadataRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,12 +33,20 @@ public class MetadataRegisterService {
     private MetadataRepository metadataRepository;
 
     public void register(String id, String ip, Integer port) {
+        long now = System.currentTimeMillis();
+
+        CacheNodeRuntimeMetadata cacheNodeRuntimeMetadata = new CacheNodeRuntimeMetadata();
+        cacheNodeRuntimeMetadata.setId(id);
+        cacheNodeRuntimeMetadata.setLastHeartbeatTimestamp(now);
+        cacheNodeRuntimeMetadata.setStatus(CacheNodeStatus.REGISTERING);
+        cacheNodeRuntimeMetadata.setFailedTimes(0);
+        metadataRepository.updateCacheNodeRuntimeMetadata(cacheNodeRuntimeMetadata);
+
         CacheNodeMetadata cacheNodeMetadata = CacheNodeMetadata.builder()
                 .id(id)
                 .ip(ip)
                 .port(port == null ? 6379 : port)
-                .status(CacheNodeStatus.REGISTERING)
-                .startupTimestamp(System.currentTimeMillis())
+                .startupTimestamp(now)
                 .version(1L)
                 .build();
         metadataRepository.register(cacheNodeMetadata);

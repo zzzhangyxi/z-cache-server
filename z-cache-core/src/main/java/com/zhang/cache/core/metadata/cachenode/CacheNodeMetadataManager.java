@@ -16,12 +16,11 @@
  */
 package com.zhang.cache.core.metadata.cachenode;
 
-import com.zhang.cache.core.event.EventPublisher;
-import com.zhang.cache.core.event.entity.CacheNodeMetadataRefreshEvent;
 import com.zhang.cache.core.metadata.cachenode.entity.CacheNodeMetadata;
+import com.zhang.cache.core.metadata.cachenode.entity.CacheNodeRuntimeMetadata;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
@@ -34,14 +33,12 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 @Component
 public class CacheNodeMetadataManager {
-    @Autowired
-    private EventPublisher eventPublisher;
 
     @Getter
+    @Setter
     private volatile Map<String, CacheNodeMetadata> cacheNodeMetadata = new ConcurrentHashMap<>();
 
-    public void setCacheNodeMetadata(Map<String, CacheNodeMetadata> cacheNodeMetadata) {
-        this.cacheNodeMetadata = cacheNodeMetadata;
-        eventPublisher.publishEvent(new CacheNodeMetadataRefreshEvent());
-    }
+    @Getter
+    @Setter
+    private volatile Map<String, CacheNodeRuntimeMetadata> cacheNodeRuntimeMetadata = new ConcurrentHashMap<>();
 }

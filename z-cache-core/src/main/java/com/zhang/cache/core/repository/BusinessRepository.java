@@ -57,4 +57,11 @@ public interface BusinessRepository {
      * @param metadata cache node
      */
     void del(String key, CacheNodeMetadata metadata);
+
+    /**
+     * Detect heartbeat with a business cache node.
+     * @param node metadata of the current node
+     * @return ping result
+     */
+     String ping(CacheNodeMetadata node);
 }

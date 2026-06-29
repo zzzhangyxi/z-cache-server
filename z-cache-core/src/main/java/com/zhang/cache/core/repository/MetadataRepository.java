@@ -17,6 +17,7 @@
 package com.zhang.cache.core.repository;
 
 import com.zhang.cache.core.metadata.cachenode.entity.CacheNodeMetadata;
+import com.zhang.cache.core.metadata.cachenode.entity.CacheNodeRuntimeMetadata;
 import com.zhang.cache.core.metadata.hotkey.entity.HotKeyMetadata;
 import com.zhang.cache.core.metadata.hotkey.entity.HotKeyReplicationMetadata;
 
@@ -35,11 +36,13 @@ public interface MetadataRepository {
 
     Map<String, CacheNodeMetadata> getAllCacheNodeMetadata();
 
-    void register(CacheNodeMetadata cacheNodeMetadata);
+    Map<String, CacheNodeRuntimeMetadata> getAllCacheNodeRuntimeMetadata();
 
-    Map<String, HotKeyMetadata> getAllHotKeyMetadata();
+    void register(CacheNodeMetadata cacheNodeMetadata);
 
     void updateHotKeyMetadata(Map<String, HotKeyMetadata> hotKeyMetadata);
 
     void updateHotKeyReplicaNodes(HotKeyReplicationMetadata hotKeyReplicationMetadata);
+
+    void updateCacheNodeRuntimeMetadata(CacheNodeRuntimeMetadata cacheNodeRuntimeMetadata);
 }

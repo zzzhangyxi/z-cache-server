@@ -35,4 +35,8 @@ public enum CacheNodeStatus {
     public static boolean isNotOnline(CacheNodeStatus status) {
         return !isOnline(status);
     }
+
+    public static boolean needDetectHeartbeat(CacheNodeStatus status) {
+        return status != REGISTERING;
+    }
 }
