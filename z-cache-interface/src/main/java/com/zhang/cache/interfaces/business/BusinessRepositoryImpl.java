@@ -17,7 +17,7 @@
 package com.zhang.cache.interfaces.business;
 
 import com.zhang.cache.core.metadata.cachenode.entity.CacheNodeMetadata;
-import com.zhang.cache.core.repository.ReadWriteRepository;
+import com.zhang.cache.core.repository.BusinessRepository;
 import com.zhang.cache.interfaces.RedisConstants;
 import io.lettuce.core.api.sync.RedisCommands;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,9 +28,9 @@ import org.springframework.stereotype.Repository;
  * @since 2026/5/13
  */
 @Repository
-public class ReadWriteRepositoryImpl implements ReadWriteRepository {
+public class BusinessRepositoryImpl implements BusinessRepository {
     @Autowired
-    private ReadWriteRepositoryClientManager readWriteRepositoryClientManager;
+    private BusinessRepositoryClientManager businessRepositoryClientManager;
 
     @Override
     public String get(String key, CacheNodeMetadata metadata) {
@@ -53,7 +53,7 @@ public class ReadWriteRepositoryImpl implements ReadWriteRepository {
     }
 
     private RedisCommands<String, String> getConnection(CacheNodeMetadata metadata) {
-        return readWriteRepositoryClientManager.getConnection(metadata);
+        return businessRepositoryClientManager.getConnection(metadata);
     }
 
     private String wrapKey(String key) {

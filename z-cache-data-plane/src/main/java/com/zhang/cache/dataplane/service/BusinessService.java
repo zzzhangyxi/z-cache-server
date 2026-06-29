@@ -18,7 +18,7 @@ package com.zhang.cache.dataplane.service;
 
 import com.zhang.cache.core.event.EventPublisher;
 import com.zhang.cache.core.metadata.cachenode.entity.CacheNodeMetadata;
-import com.zhang.cache.core.repository.ReadWriteRepository;
+import com.zhang.cache.core.repository.BusinessRepository;
 import com.zhang.cache.core.hash.HashRouter;
 import com.zhang.cache.dataplane.event.entity.ReadKeyEvent;
 import com.zhang.cache.dataplane.event.entity.WriteKeyEvent;
@@ -30,11 +30,11 @@ import org.springframework.stereotype.Service;
  * @since 2026/5/13
  */
 @Service
-public class ReadWriteService {
+public class BusinessService {
     @Autowired
     private HashRouter hashRouter;
     @Autowired
-    private ReadWriteRepository readWriteRepository;
+    private BusinessRepository businessRepository;
     @Autowired
     private EventPublisher eventPublisher;
 
@@ -47,7 +47,7 @@ public class ReadWriteService {
             node = hashRouter.route(key);
         }
         eventPublisher.publishEvent(new ReadKeyEvent(key));
-        return readWriteRepository.get(key, node);
+        return businessRepository.get(key, node);
     }
 
     public void set(String key, String value) {
@@ -59,7 +59,7 @@ public class ReadWriteService {
         if (!specifyNode) {
             node = hashRouter.route(key);
         }
-        readWriteRepository.set(key, value, node);
+        businessRepository.set(key, value, node);
         if (!specifyNode) {
             eventPublisher.publishEvent(new WriteKeyEvent(key));
         }
@@ -74,7 +74,7 @@ public class ReadWriteService {
         if (!specifyNode) {
             node = hashRouter.route(key);
         }
-        readWriteRepository.del(key, node);
+        businessRepository.del(key, node);
         if (!specifyNode) {
             eventPublisher.publishEvent(new WriteKeyEvent(key));
         }

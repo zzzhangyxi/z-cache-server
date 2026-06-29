@@ -36,7 +36,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Component
 @Slf4j
-public class ReadWriteRepositoryClientManager {
+public class BusinessRepositoryClientManager {
     private static final Map<String, StatefulRedisConnection<String, String>> CONNECTIONS = new ConcurrentHashMap<>();
     private static final RedisClient REDIS = RedisClient.create();
 

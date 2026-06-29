@@ -19,7 +19,7 @@ package com.zhang.cache.interfaces.http;
 import com.alibaba.fastjson.JSON;
 import com.zhang.cache.core.exception.InvalidParamException;
 import com.zhang.cache.interfaces.http.dto.BusinessWriteRequestDTO;
-import com.zhang.cache.dataplane.service.ReadWriteService;
+import com.zhang.cache.dataplane.service.BusinessService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,23 +40,23 @@ import org.springframework.web.bind.annotation.RestController;
 @Slf4j
 public class BusinessController {
     @Autowired
-    private ReadWriteService readWriteService;
+    private BusinessService businessService;
 
     @GetMapping("/read")
     public String read(@RequestParam String key) {
-        return readWriteService.get(key);
+        return businessService.get(key);
     }
 
     @PostMapping("/write")
     public String write(@RequestBody BusinessWriteRequestDTO request) {
         validateParam(request);
-        readWriteService.set(request.getKey(), request.getValue());
+        businessService.set(request.getKey(), request.getValue());
         return "success";
     }
 
     @DeleteMapping("/delete")
     public String delete(@RequestParam String key) {
-        readWriteService.delete(key);
+        businessService.delete(key);
         return "success";
     }
 

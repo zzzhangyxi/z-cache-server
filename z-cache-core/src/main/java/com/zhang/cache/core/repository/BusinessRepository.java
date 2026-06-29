@@ -25,7 +25,7 @@ import com.zhang.cache.core.metadata.cachenode.entity.CacheNodeMetadata;
  * @author zzzhangyxi
  * @since 2026/5/13
  */
-public interface ReadWriteRepository {
+public interface BusinessRepository {
     /**
      * Read a single string value.
      * @param key data key
