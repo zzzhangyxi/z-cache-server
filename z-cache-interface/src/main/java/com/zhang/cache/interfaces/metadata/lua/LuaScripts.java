@@ -22,24 +22,6 @@ package com.zhang.cache.interfaces.metadata.lua;
  */
 @SuppressWarnings("all")
 public class LuaScripts {
-    public static final String HOT_KEY_METADATA_UPDATE_SCRIPT =
-            "local old = redis.call('HGET', KEYS[1], ARGV[2])" +
-                    "local oldTs = 0" +
-                    "if old then" +
-                    "    local sep = string.find(old, \"|\")" +
-                    "    oldTs = tonumber(string.sub(old, sep + 1))" +
-                    "end" +
-                    "if (not old) or (tonumber(ARGV[1]) > oldTs) then" +
-                    "    redis.call(" +
-                    "        'HSET'," +
-                    "        KEYS[1]," +
-                    "        ARGV[2]," +
-                    "        ARGV[3] .. \"|\" .. ARGV[1]" +
-                    "    )" +
-                    "    return 1" +
-                    "end" +
-                    "return 0";
-
     public static final String HOT_KEY_REPLICATION_METADATA_UPDATE_SCRIPT =
             "local oldTs = redis.call('HGET', KEYS[1], 'last_operation_timestamp') " +
                     "if (not oldTs) or (tonumber(ARGV[1]) > tonumber(oldTs)) then " +

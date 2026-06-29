@@ -16,8 +16,8 @@
  */
 package com.zhang.cache.interfaces.http;
 
+import com.zhang.cache.controlplane.service.MetadataRegisterService;
 import com.zhang.cache.interfaces.http.dto.MetadataRegisterRequestDTO;
-import com.zhang.cache.core.service.MetadataService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -32,11 +32,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/metadata")
 public class MetadataController {
     @Autowired
-    private MetadataService metadataService;
+    private MetadataRegisterService metadataRegisterService;
 
     @PostMapping("/register")
     public String register(@RequestBody MetadataRegisterRequestDTO request) {
-        metadataService.register(request.getId(), request.getIp(), request.getPort());
+        metadataRegisterService.register(request.getId(), request.getIp(), request.getPort());
         return "success";
     }
 }

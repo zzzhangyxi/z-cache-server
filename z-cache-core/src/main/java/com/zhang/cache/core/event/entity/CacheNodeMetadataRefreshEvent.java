@@ -18,21 +18,14 @@ package com.zhang.cache.core.event.entity;
 
 import com.zhang.cache.core.event.BaseEventEntity;
 import com.zhang.cache.core.event.EventType;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
 
 /**
  * @author zzzhangyxi
- * @since 2026/5/13
+ * @since 2026/6/29
  */
-@Data
-@EqualsAndHashCode(callSuper = true)
-@AllArgsConstructor
 public class CacheNodeMetadataRefreshEvent extends BaseEventEntity {
-
     @Override
     public EventType getEventType() {
-        return EventType.CACHE_NODE_REFRESH;
+        return MetadataRefreshEventType.CACHE_NODE_METADATA_REFRESH_EVENT;
     }
 }

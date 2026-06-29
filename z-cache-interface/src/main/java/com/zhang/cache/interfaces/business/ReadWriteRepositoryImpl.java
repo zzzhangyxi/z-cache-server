@@ -16,7 +16,7 @@
  */
 package com.zhang.cache.interfaces.business;
 
-import com.zhang.cache.core.metadata.cachenode.CacheNodeMetadata;
+import com.zhang.cache.core.metadata.cachenode.entity.CacheNodeMetadata;
 import com.zhang.cache.core.repository.ReadWriteRepository;
 import com.zhang.cache.interfaces.RedisConstants;
 import io.lettuce.core.api.sync.RedisCommands;

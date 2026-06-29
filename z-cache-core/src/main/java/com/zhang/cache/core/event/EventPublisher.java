@@ -21,15 +21,11 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 /**
  * @author zzzhangyxi
@@ -43,41 +39,13 @@ public class EventPublisher {
     @Autowired
     private EventListenerRegister eventListenerRegister;
 
-    private static final Executor CACHE_NODE_METADATA_REFRESH_EVENT_POOL = new ThreadPoolExecutor(
-            Runtime.getRuntime().availableProcessors() * 4,
-            Runtime.getRuntime().availableProcessors() * 30,
-            60L,
-            TimeUnit.SECONDS,
-            new LinkedBlockingQueue<>(1000),
-            new ThreadPoolExecutor.CallerRunsPolicy());
-    private static final Executor HOT_KEY_METADATA_REFRESH_EVENT_POOL = new ThreadPoolExecutor(
-            Runtime.getRuntime().availableProcessors() * 10,
-            Runtime.getRuntime().availableProcessors() * 30,
-            60L,
-            TimeUnit.SECONDS,
-            new LinkedBlockingQueue<>(1000),
-            new ThreadPoolExecutor.CallerRunsPolicy());
-    private static final Executor READ_KEY_EVENT_POOL = new ThreadPoolExecutor(
-            Runtime.getRuntime().availableProcessors() * 20,
-            Runtime.getRuntime().availableProcessors() * 50,
-            60L,
-            TimeUnit.SECONDS,
-            new LinkedBlockingQueue<>(1000),
-            new ThreadPoolExecutor.CallerRunsPolicy());
-    private static final Executor WRITE_KEY_EVENT_POOL = new ThreadPoolExecutor(
-            Runtime.getRuntime().availableProcessors() * 10,
-            Runtime.getRuntime().availableProcessors() * 30,
-            60L,
-            TimeUnit.SECONDS,
-            new LinkedBlockingQueue<>(1000),
-            new ThreadPoolExecutor.CallerRunsPolicy());
-
-    @PostConstruct
-    private void init() {
-        EXECUTORS.put(EventType.CACHE_NODE_REFRESH, CACHE_NODE_METADATA_REFRESH_EVENT_POOL);
-        EXECUTORS.put(EventType.HOT_KEY_METADATA_REFRESH, HOT_KEY_METADATA_REFRESH_EVENT_POOL);
-        EXECUTORS.put(EventType.READ_KEY, READ_KEY_EVENT_POOL);
-        EXECUTORS.put(EventType.WRITE_KEY, WRITE_KEY_EVENT_POOL);
+    public static void registerExecutor(EventType eventType, Executor executor) {
+        // should be null
+        Executor oldExecutor = EXECUTORS.put(eventType, executor);
+        if (oldExecutor != null) {
+            log.error("Same type of executor has been registered: {}", eventType);
+            throw new IllegalStateException("Same type of executor has been registered: " + eventType);
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -91,17 +59,28 @@ public class EventPublisher {
             return;
         }
 
+        String eventClass = event.getClass().getName();
+
         Executor executor = EXECUTORS.get(event.getEventType());
         for (EventListener<? extends BaseEventEntity> listener : listeners) {
             EventListener<T> typedListener = (EventListener<T>) listener;
-            CompletableFuture
-                    .runAsync(() -> typedListener.onEvent(event), executor)
-                    .exceptionally(ex -> {
-                        String eventClass = event.getClass().getName();
-                        String listenerClass = listener.getClass().getName();
-                        log.error("Event execute failed. event:{} listener:{}", eventClass, listenerClass, ex);
-                        return null;
-                    });
+            String listenerClass = listener.getClass().getName();
+
+            if (executor == null) {
+                // Not use thread pool to execute this task.
+                try {
+                    typedListener.onEvent(event);
+                } catch (Exception e) {
+                    log.error("Event execute failed. event:{} listener:{}", eventClass, listenerClass, e);
+                }
+            } else {
+                CompletableFuture
+                        .runAsync(() -> typedListener.onEvent(event), executor)
+                        .exceptionally(ex -> {
+                            log.error("Event execute failed. event:{} listener:{}", eventClass, listenerClass, ex);
+                            return null;
+                        });
+            }
         }
     }
 }

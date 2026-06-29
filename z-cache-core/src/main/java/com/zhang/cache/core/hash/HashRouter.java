@@ -17,8 +17,8 @@
 package com.zhang.cache.core.hash;
 
 import com.zhang.cache.core.exception.NoAvailableNodeException;
-import com.zhang.cache.core.hotkey.HotKeyDetector;
-import com.zhang.cache.core.metadata.cachenode.CacheNodeMetadata;
+import com.zhang.cache.core.metadata.cachenode.entity.CacheNodeMetadata;
+import com.zhang.cache.core.metadata.hotkey.HotKeyMetadataManager;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.MapUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,10 +37,10 @@ public class HashRouter {
     @Autowired
     private HashRingManager hashRingManager;
     @Autowired
-    private HotKeyDetector hotKeyDetector;
+    private HotKeyMetadataManager hotKeyMetadataManager;
 
     public CacheNodeMetadata route(String key) {
-        boolean hotKey = hotKeyDetector.isHotKey(key);
+        boolean hotKey = hotKeyMetadataManager.isHotKey(key);
         return hotKey ? hotKeyRoute(key) : basicRoute(key);
     }
 

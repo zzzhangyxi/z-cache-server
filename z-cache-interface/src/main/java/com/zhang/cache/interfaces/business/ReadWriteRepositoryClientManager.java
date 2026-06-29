@@ -17,7 +17,7 @@
 package com.zhang.cache.interfaces.business;
 
 import com.zhang.cache.core.exception.ConnectionException;
-import com.zhang.cache.core.metadata.cachenode.CacheNodeMetadata;
+import com.zhang.cache.core.metadata.cachenode.entity.CacheNodeMetadata;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisURI;
 import io.lettuce.core.api.StatefulRedisConnection;

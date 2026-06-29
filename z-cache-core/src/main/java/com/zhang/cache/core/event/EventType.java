@@ -19,9 +19,5 @@ package com.zhang.cache.core.event;
   * @author zzzhangyxi
   * @since 2026/5/15
   */
-public enum EventType {
-    CACHE_NODE_REFRESH,
-    HOT_KEY_METADATA_REFRESH,
-    READ_KEY,
-    WRITE_KEY
+public interface EventType {
 }

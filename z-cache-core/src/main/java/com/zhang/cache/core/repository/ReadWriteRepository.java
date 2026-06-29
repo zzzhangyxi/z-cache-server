@@ -16,7 +16,7 @@
  */
 package com.zhang.cache.core.repository;
 
-import com.zhang.cache.core.metadata.cachenode.CacheNodeMetadata;
+import com.zhang.cache.core.metadata.cachenode.entity.CacheNodeMetadata;
 
 /**
  * Contains single string value read and write command only.

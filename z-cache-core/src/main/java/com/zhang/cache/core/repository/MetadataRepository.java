@@ -16,9 +16,9 @@
  */
 package com.zhang.cache.core.repository;
 
-import com.zhang.cache.core.metadata.cachenode.CacheNodeMetadata;
-import com.zhang.cache.core.metadata.hotkey.HotKeyMetadata;
-import com.zhang.cache.core.metadata.hotkey.HotKeyReplicationMetadata;
+import com.zhang.cache.core.metadata.cachenode.entity.CacheNodeMetadata;
+import com.zhang.cache.core.metadata.hotkey.entity.HotKeyMetadata;
+import com.zhang.cache.core.metadata.hotkey.entity.HotKeyReplicationMetadata;
 
 import javax.annotation.Nullable;
 import java.util.Map;
@@ -39,7 +39,7 @@ public interface MetadataRepository {
 
     Map<String, HotKeyMetadata> getAllHotKeyMetadata();
 
-    void updateHotKeyMetadata(HotKeyMetadata hotKeyMetadata);
+    void updateHotKeyMetadata(Map<String, HotKeyMetadata> hotKeyMetadata);
 
     void updateHotKeyReplicaNodes(HotKeyReplicationMetadata hotKeyReplicationMetadata);
 }

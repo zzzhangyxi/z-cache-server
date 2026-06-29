@@ -17,9 +17,9 @@
 package com.zhang.cache.core.hash;
 
 import com.zhang.cache.core.constant.HashRingConstants;
-import com.zhang.cache.core.metadata.CacheNodeMetadataManager;
-import com.zhang.cache.core.metadata.cachenode.CacheNodeMetadata;
-import com.zhang.cache.core.metadata.cachenode.CacheNodeStatus;
+import com.zhang.cache.core.metadata.cachenode.CacheNodeMetadataManager;
+import com.zhang.cache.core.metadata.cachenode.entity.CacheNodeMetadata;
+import com.zhang.cache.core.metadata.cachenode.entity.CacheNodeStatus;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,7 +45,7 @@ public class HashRingManager {
     public void rebuildHashRing() {
         NavigableMap<Long, CacheNodeMetadata> newHashRing = new TreeMap<>();
 
-        Map<String, CacheNodeMetadata> cacheNodeMetadata = metadataManager.getAllCacheNodeMetadata();
+        Map<String, CacheNodeMetadata> cacheNodeMetadata = metadataManager.getCacheNodeMetadata();
         for (Map.Entry<String, CacheNodeMetadata> metadataEntry : cacheNodeMetadata.entrySet()) {
             CacheNodeMetadata nodeMetadata = metadataEntry.getValue();
 

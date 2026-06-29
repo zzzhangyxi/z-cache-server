@@ -17,10 +17,10 @@
 package com.zhang.cache.interfaces.metadata;
 
 import com.alibaba.fastjson.JSON;
-import com.zhang.cache.core.constant.DistributedLockConstants;
-import com.zhang.cache.core.metadata.cachenode.CacheNodeMetadata;
-import com.zhang.cache.core.metadata.hotkey.HotKeyMetadata;
-import com.zhang.cache.core.metadata.hotkey.HotKeyReplicationMetadata;
+import com.zhang.cache.core.identity.NodeIdentityGenerator;
+import com.zhang.cache.core.metadata.cachenode.entity.CacheNodeMetadata;
+import com.zhang.cache.core.metadata.hotkey.entity.HotKeyMetadata;
+import com.zhang.cache.core.metadata.hotkey.entity.HotKeyReplicationMetadata;
 import com.zhang.cache.core.metadata.hotkey.HotKeyStatus;
 import com.zhang.cache.core.repository.MetadataRepository;
 import com.zhang.cache.interfaces.RedisConstants;
@@ -36,7 +36,6 @@ import org.springframework.stereotype.Repository;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -49,10 +48,12 @@ import java.util.stream.Collectors;
 public class MetadataRepositoryImpl implements MetadataRepository {
     @Autowired
     private RedisCommands<String, String> redisCommands;
+    @Autowired
+    private NodeIdentityGenerator nodeIdentityGenerator;
 
     @Override
     public String lockForReplication(String key) {
-        String lockId = UUID.randomUUID().toString();
+        /*String lockId = UUID.randomUUID().toString();
         String metadataKey = RedisConstants.HOT_KEY_METADATA_KEY + key;
         String lockKey = DistributedLockConstants.LOCK_KEY_PREFIX + key;
 
@@ -67,7 +68,7 @@ public class MetadataRepositoryImpl implements MetadataRepository {
         boolean success = lockResult != null && lockResult == 1L;
         if (success) {
             return lockId;
-        }
+        }*/
         return null;
     }
 
@@ -111,18 +112,9 @@ public class MetadataRepositoryImpl implements MetadataRepository {
     }
 
     @Override
-    public void updateHotKeyMetadata(HotKeyMetadata hotKeyMetadata) {
-        String key = hotKeyMetadata.getKey();
-        String hotKeyMetadataKey = RedisConstants.HOT_KEY_METADATA_KEY;
-
-        // use the lua script to update metadata atomically, avoid new version data being covered by old version data.
-        redisCommands.eval(
-                LuaScripts.HOT_KEY_METADATA_UPDATE_SCRIPT,
-                ScriptOutputType.INTEGER,
-                new String[]{hotKeyMetadataKey},
-                String.valueOf(hotKeyMetadata.getLastOperationTimestamp()),
-                key,
-                hotKeyMetadata.getStatus().name());
+    public void updateHotKeyMetadata(Map<String, HotKeyMetadata> hotKeyMetadata) {
+        String hotKeyJson = JSON.toJSONString(hotKeyMetadata);
+        redisCommands.hset(RedisConstants.HOT_KEY_METADATA_KEY, nodeIdentityGenerator.getNodeId(), hotKeyJson);
     }
 
     @Override

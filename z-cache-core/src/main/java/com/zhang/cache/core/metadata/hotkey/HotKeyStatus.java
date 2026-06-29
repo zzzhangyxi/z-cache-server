@@ -23,9 +23,6 @@ import javax.annotation.Nullable;
  * @since 2026/5/16
  */
 public enum HotKeyStatus {
-    DETECTED,
-    REPLICATING,
-    REPLICATE_PARTIAL_FINISHED,
     ACTIVE,
     COOLING_DOWN,
     INVALID;
