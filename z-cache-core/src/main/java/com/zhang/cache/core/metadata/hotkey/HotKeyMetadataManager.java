@@ -25,7 +25,6 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
@@ -123,7 +122,6 @@ public class HotKeyMetadataManager {
      * This behavior is an acceptable trade-off for achieving higher throughput and lower contention in approximate
      * hot key statistics.
      */
-    @Scheduled(fixedRate = 1000)
     public void analyzeLocalHotKey() {
         moveOffset();
         hotKeyMetadata = calculateMetadata();
