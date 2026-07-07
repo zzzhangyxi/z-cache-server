@@ -21,5 +21,5 @@ package com.zhang.cache.core.constant;
  * @since 2026/5/16
  */
 public class DistributedLockConstants {
-    public static final String LOCK_KEY_PREFIX = "lock:";
+    public static final String LOCK_KEY = "lock";
 }

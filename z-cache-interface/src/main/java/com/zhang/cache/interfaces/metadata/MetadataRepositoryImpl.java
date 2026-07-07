@@ -17,6 +17,8 @@
 package com.zhang.cache.interfaces.metadata;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.TypeReference;
+import com.zhang.cache.core.constant.DistributedLockConstants;
 import com.zhang.cache.core.identity.NodeIdentityGenerator;
 import com.zhang.cache.core.metadata.cachenode.entity.CacheNodeMetadata;
 import com.zhang.cache.core.metadata.cachenode.entity.CacheNodeRuntimeMetadata;
@@ -49,33 +51,25 @@ public class MetadataRepositoryImpl implements MetadataRepository {
     private NodeIdentityGenerator nodeIdentityGenerator;
 
     @Override
-    public String lockForReplication(String key) {
-        /*String lockId = UUID.randomUUID().toString();
-        String metadataKey = RedisConstants.HOT_KEY_METADATA_KEY + key;
-        String lockKey = DistributedLockConstants.LOCK_KEY_PREFIX + key;
-
+    public boolean lockForReplication() {
         Long lockResult = redisCommands.eval(
                 LuaScripts.LOCK_FOR_REPLICATION_SCRIPT,
                 ScriptOutputType.INTEGER,
-                new String[]{metadataKey, lockKey},
-                HotKeyStatus.DETECTED.name(),
-                lockId,
-                String.valueOf(10));
-
-        boolean success = lockResult != null && lockResult == 1L;
-        if (success) {
-            return lockId;
-        }*/
-        return null;
+                new String[]{DistributedLockConstants.LOCK_KEY},
+                nodeIdentityGenerator.getNodeId(),
+                String.valueOf(60000)
+        );
+        return lockResult != null && lockResult == 1L;
     }
 
     @Override
-    public void unlockForReplication(String hotKey, String lockId) {
+    public void unlockForReplication() {
         redisCommands.eval(
                 LuaScripts.UNLOCK_FOR_REPLICATION_SCRIPT,
                 ScriptOutputType.INTEGER,
-                new String[]{hotKey},
-                lockId);
+                new String[]{DistributedLockConstants.LOCK_KEY},
+                nodeIdentityGenerator.getNodeId()
+        );
     }
 
     @Override
@@ -108,6 +102,22 @@ public class MetadataRepositoryImpl implements MetadataRepository {
     }
 
     @Override
+    public Map<String, Map<String, HotKeyMetadata>> getAllHotKeyMetadata() {
+        Map<String, String> rawData = redisCommands.hgetall(RedisConstants.HOT_KEY_METADATA_KEY);
+        Map<String, Map<String, HotKeyMetadata>> hotKeyMetadata = new HashMap<>();
+        if (MapUtils.isNotEmpty(rawData)) {
+            for (Map.Entry<String, String> entry : rawData.entrySet()) {
+                String nodeId = entry.getKey();
+                Map<String, HotKeyMetadata> singleNodeHotKeyMetadata = JSON.parseObject(entry.getValue(),
+                        new TypeReference<Map<String, HotKeyMetadata>>() {});
+                hotKeyMetadata.put(nodeId, singleNodeHotKeyMetadata);
+            }
+        }
+        log.info("Hotkey metadata:[{}]", JSON.toJSONString(hotKeyMetadata));
+        return hotKeyMetadata;
+    }
+
+    @Override
     public void register(CacheNodeMetadata cacheNodeMetadata) {
         String nodeId = cacheNodeMetadata.getId();
         String metadata = JSON.toJSONString(cacheNodeMetadata);
@@ -121,17 +131,36 @@ public class MetadataRepositoryImpl implements MetadataRepository {
     }
 
     @Override
+    public HotKeyReplicationMetadata getHotKeyReplicationMetadata(String hotKey) {
+        String rawData = redisCommands.hget(RedisConstants.HOT_KEY_REPLICATION, hotKey);
+        if (StringUtils.isNotBlank(rawData)) {
+            return JSON.parseObject(rawData, HotKeyReplicationMetadata.class);
+        } else {
+            return null;
+        }
+    }
+
+    @Override
+    public Map<String, HotKeyReplicationMetadata> getAllHotKeyReplicationMetadata() {
+        Map<String, String> rawData = redisCommands.hgetall(RedisConstants.HOT_KEY_REPLICATION);
+        Map<String, HotKeyReplicationMetadata> hotKeyReplicationMetadata = new HashMap<>();
+        if (MapUtils.isNotEmpty(rawData)) {
+            for (Map.Entry<String, String> entry : rawData.entrySet()) {
+                String key = entry.getKey();
+                String value = entry.getValue();
+                hotKeyReplicationMetadata.put(key, JSON.parseObject(value, HotKeyReplicationMetadata.class));
+            }
+        }
+        log.info("Hotkey replication metadata:[{}]", JSON.toJSONString(hotKeyReplicationMetadata));
+        return hotKeyReplicationMetadata;
+    }
+
+    @Override
     public void updateHotKeyReplicaNodes(HotKeyReplicationMetadata hotKeyReplicationMetadata) {
         String key = hotKeyReplicationMetadata.getKey();
-        String hotKeyReplicationMetadataKey = RedisConstants.HOT_KEY_REPLICATION_PREFIX + key;
+        String hotKeyReplicationMetadataKey = RedisConstants.HOT_KEY_REPLICATION;
 
-        redisCommands.eval(
-                LuaScripts.HOT_KEY_REPLICATION_METADATA_UPDATE_SCRIPT,
-                ScriptOutputType.INTEGER,
-                new String[]{hotKeyReplicationMetadataKey},
-                String.valueOf(hotKeyReplicationMetadata.getLastOperationTimestamp()),
-                key,
-                JSON.toJSONString(hotKeyReplicationMetadata.getReplicationNodes()));
+        redisCommands.hset(hotKeyReplicationMetadataKey, key, JSON.toJSONString(hotKeyReplicationMetadata));
     }
 
     @Override

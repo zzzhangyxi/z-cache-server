@@ -57,7 +57,8 @@ public class BusinessService {
     public void set(String key, String value, CacheNodeMetadata node) {
         boolean specifyNode = node != null;
         if (!specifyNode) {
-            node = hashRouter.route(key);
+            // only origin node
+            node = hashRouter.basicRoute(key);
         }
         businessRepository.set(key, value, node);
         if (!specifyNode) {

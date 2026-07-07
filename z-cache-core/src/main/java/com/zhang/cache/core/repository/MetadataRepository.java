@@ -29,18 +29,24 @@ import java.util.Map;
  * @since 2026/5/13
  */
 public interface MetadataRepository {
-    @Nullable
-    String lockForReplication(String key);
+    boolean lockForReplication();
 
-    void unlockForReplication(String hotKey, String lockId);
+    void unlockForReplication();
 
     Map<String, CacheNodeMetadata> getAllCacheNodeMetadata();
 
     Map<String, CacheNodeRuntimeMetadata> getAllCacheNodeRuntimeMetadata();
 
+    Map<String, Map<String, HotKeyMetadata>> getAllHotKeyMetadata();
+
     void register(CacheNodeMetadata cacheNodeMetadata);
 
     void updateHotKeyMetadata(Map<String, HotKeyMetadata> hotKeyMetadata);
+
+    @Nullable
+    HotKeyReplicationMetadata getHotKeyReplicationMetadata(String hotKey);
+
+    Map<String, HotKeyReplicationMetadata> getAllHotKeyReplicationMetadata();
 
     void updateHotKeyReplicaNodes(HotKeyReplicationMetadata hotKeyReplicationMetadata);
 

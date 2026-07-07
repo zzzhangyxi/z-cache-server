@@ -23,19 +23,19 @@ import com.zhang.cache.core.metadata.hotkey.HotKeyMetadataManager;
 import com.zhang.cache.core.metadata.hotkey.HotKeyStatus;
 import com.zhang.cache.core.metadata.hotkey.entity.HotKeyMetadata;
 import com.zhang.cache.core.metadata.hotkey.entity.HotKeyReplicationMetadata;
+import com.zhang.cache.core.repository.BusinessRepository;
 import com.zhang.cache.core.repository.MetadataRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.collections4.MapUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * @author zzzhangyxi
@@ -44,7 +44,7 @@ import java.util.stream.Collectors;
 @Component
 @Slf4j
 public class HotKeyReplicationProcessor {
-    /*@Autowired
+    @Autowired
     private CacheNodeMetadataManager cacheNodeMetadataManager;
     @Autowired
     private HotKeyMetadataManager hotKeyMetadataManager;
@@ -53,65 +53,78 @@ public class HotKeyReplicationProcessor {
     @Autowired
     private HashRouter hashRouter;
     @Autowired
-    private ReadWriteService readWriteService;
+    private BusinessRepository businessRepository;
 
-    @Scheduled(fixedRate = 1000)
+    /**
+     * The server cluster is a stateless cluster, which means every node runs equally.
+     * Therefore, there is not a primary node to finish the replication job, every node has a chance to do this.
+     * However, this logic can only be executed once at the same time, so a distributed lock is required to ensure
+     * only one executor can do the scheduling.
+     */
+    @Scheduled(fixedRate = 5000)
     public void replicateDetectedHotKeys() {
-        Map<String, HotKeyMetadata> allHotKeys = hotKeyMetadataManager.getHotKeyMetadata();
-        if (MapUtils.isEmpty(allHotKeys)) {
-            log.info("No hot keys, do not need to replication.");
+        // Try to get the distributed lock.
+        boolean lockSuccess = metadataRepository.lockForReplication();
+        if (lockSuccess) {
+            log.info("Get the distributed lock successfully. Start scheduling replication.");
+        } else {
+            log.info("Get the distributed lock failed. Do not start scheduling replication.");
             return;
         }
 
-        List<String> detectedHotKeys = allHotKeys.entrySet()
-                .stream()
-                .filter(entry -> HotKeyStatus.DETECTED.equals(entry.getValue().getStatus()))
-                .map(Map.Entry::getKey)
-                .collect(Collectors.toList());
-        if (CollectionUtils.isEmpty(detectedHotKeys)) {
-            log.info("No new hot keys, do not need to replication.");
-            return;
-        }
+        try {
+            Map<String, Map<String, HotKeyMetadata>> allHotKeyMetadata = metadataRepository.getAllHotKeyMetadata();
+            int nodeThreshold = allHotKeyMetadata.size() / 2;
+            Map<String, Integer> hotKeyCounter = new HashMap<>();
 
-        Map<String, CacheNodeMetadata> allNodes = cacheNodeMetadataManager.getAllCacheNodeMetadata();
-        if (MapUtils.isEmpty(allNodes) || allNodes.size() == 1) {
-            log.info("No available replica nodes found. Stop replication.");
-            return;
-        }
-
-        int nodesCount = allHotKeys.size();
-        for (String hotKey : detectedHotKeys) {
-            String lockId = metadataRepository.lockForReplication(hotKey);
-            if (StringUtils.isBlank(lockId)) {
-                continue;
+            for (Map<String, HotKeyMetadata> hotKeys : allHotKeyMetadata.values()) {
+                Collection<HotKeyMetadata> hotKeyMetadata = hotKeys.values();
+                if (CollectionUtils.isEmpty(hotKeyMetadata)) {
+                    continue;
+                }
+                hotKeys.forEach((key, metadata) -> {
+                    HotKeyStatus hotKeyStatus = metadata.getStatus();
+                    if (HotKeyStatus.ACTIVE.equals(hotKeyStatus)) {
+                        Integer count = hotKeyCounter.getOrDefault(key, 0);
+                        hotKeyCounter.put(key, count + 1);
+                    }
+                });
             }
 
-            long now = System.currentTimeMillis();
-            try {
-                CacheNodeMetadata originalNode = hashRouter.basicRoute(hotKey);
-                String originValue = readWriteService.get(hotKey, originalNode);
-
-                List<CacheNodeMetadata> replicaNodes = getReplicaNodes(hotKey, originalNode, nodesCount);
-                for (CacheNodeMetadata replicaNode : replicaNodes) {
-                    readWriteService.set(hotKey, originValue, replicaNode);
+            for (Map.Entry<String, Integer> counter : hotKeyCounter.entrySet()) {
+                if (counter.getValue() >= nodeThreshold) {
+                    doReplicateHotKey(counter.getKey());
                 }
-                HotKeyMetadata hotKeyMetadata = HotKeyMetadata.builder()
-                        .key(hotKey)
-                        .status(HotKeyStatus.ACTIVE)
-                        .lastOperationTimestamp(now)
-                        .build();
-                metadataRepository.updateHotKeyMetadata(hotKeyMetadata);
+            }
+            // TODO 冷key删除
+        } catch (Exception e) {
+            log.error("Processing replication failed", e);
+        } finally {
+            metadataRepository.unlockForReplication();
+        }
+    }
 
-                replicaNodes.add(originalNode);
+    private void doReplicateHotKey(String hotKey) {
+        long now = System.currentTimeMillis();
+        HotKeyReplicationMetadata replicationMetadata = metadataRepository.getHotKeyReplicationMetadata(hotKey);
+        if (replicationMetadata == null) {
+            Map<String, CacheNodeMetadata> onlineNodes = cacheNodeMetadataManager.getOnlineNodes();
+            CacheNodeMetadata originNode = hashRouter.basicRoute(hotKey);
+            List<CacheNodeMetadata> replicaNodes = getReplicaNodes(hotKey, originNode, onlineNodes.size());
+            log.info("replicaNodes = {}", replicaNodes);
+
+            String businessValue = businessRepository.get(hotKey, originNode);
+            for (CacheNodeMetadata replicaNode : replicaNodes) {
+                businessRepository.set(hotKey, businessValue, replicaNode);
                 HotKeyReplicationMetadata hotKeyReplicationMetadata = HotKeyReplicationMetadata.builder()
                         .key(hotKey)
                         .replicationNodes(replicaNodes)
                         .lastOperationTimestamp(now)
                         .build();
                 metadataRepository.updateHotKeyReplicaNodes(hotKeyReplicationMetadata);
-            } finally {
-                metadataRepository.unlockForReplication(hotKey, lockId);
             }
+        } else {
+            log.info("Hot key:[{}] has already been replicated. Do not need to handle it duplicately.", hotKey);
         }
     }
 
@@ -120,15 +133,16 @@ public class HotKeyReplicationProcessor {
         int replicaCount = Math.toIntExact(Math.min(totalNodesCount, qps / totalNodesCount));
 
         List<CacheNodeMetadata> replicaNodes = new ArrayList<>();
-        int replicaIndex = 0;
+        int replicaIndex = -1;
+        CacheNodeMetadata node = originalNode;
         while (replicaNodes.size() < replicaCount - 1) {
-            String key = hotKey + "#" + replicaIndex;
-            CacheNodeMetadata node = originalNode;
             while (node == originalNode || replicaNodes.contains(node)) {
+                replicaIndex++;
+                String key = hotKey + "#" + replicaIndex;
                 node = hashRouter.basicRoute(key);
             }
             replicaNodes.add(node);
         }
         return replicaNodes;
-    }*/
+    }
 }

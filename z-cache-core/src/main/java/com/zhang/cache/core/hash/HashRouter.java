@@ -17,15 +17,22 @@
 package com.zhang.cache.core.hash;
 
 import com.zhang.cache.core.exception.NoAvailableNodeException;
+import com.zhang.cache.core.metadata.cachenode.CacheNodeMetadataManager;
 import com.zhang.cache.core.metadata.cachenode.entity.CacheNodeMetadata;
 import com.zhang.cache.core.metadata.hotkey.HotKeyMetadataManager;
+import com.zhang.cache.core.metadata.hotkey.HotKeyReplicationMetadataManager;
+import com.zhang.cache.core.metadata.hotkey.entity.HotKeyReplicationMetadata;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
+import java.util.ArrayList;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * @author zzzhangyxi
@@ -38,6 +45,10 @@ public class HashRouter {
     private HashRingManager hashRingManager;
     @Autowired
     private HotKeyMetadataManager hotKeyMetadataManager;
+    @Autowired
+    private HotKeyReplicationMetadataManager hotKeyReplicationMetadataManager;
+    @Autowired
+    private CacheNodeMetadataManager cacheNodeMetadataManager;
 
     public CacheNodeMetadata route(String key) {
         boolean hotKey = hotKeyMetadataManager.isHotKey(key);
@@ -60,7 +71,36 @@ public class HashRouter {
     }
 
     public CacheNodeMetadata hotKeyRoute(String key) {
-        // TODO 热点key路由逻辑
-        return basicRoute(key);
+        Map<String, HotKeyReplicationMetadata> replicationMetadata = hotKeyReplicationMetadataManager.getReplicationMetadata();
+        if (MapUtils.isEmpty(replicationMetadata)) {
+            return basicRoute(key);
+        }
+        HotKeyReplicationMetadata replication = replicationMetadata.get(key);
+        if (replication == null || CollectionUtils.isEmpty(replication.getReplicationNodes())) {
+            return basicRoute(key);
+        }
+        List<CacheNodeMetadata> candidateNodes = new ArrayList<>();
+        Map<String, CacheNodeMetadata> onlineNodes = cacheNodeMetadataManager.getOnlineNodes();
+
+        CacheNodeMetadata primaryNode = basicRoute(key);
+        if (onlineNodes.containsKey(primaryNode.getId())) {
+            candidateNodes.add(primaryNode);
+        }
+
+        for (CacheNodeMetadata replicationNode : replication.getReplicationNodes()) {
+            if (replicationNode == null || !onlineNodes.containsKey(replicationNode.getId())) {
+                continue;
+            }
+            CacheNodeMetadata onlineNode = onlineNodes.get(replicationNode.getId());
+            if (!candidateNodes.contains(onlineNode)) {
+                candidateNodes.add(onlineNode);
+            }
+        }
+
+        if (CollectionUtils.isEmpty(candidateNodes)) {
+            return basicRoute(key);
+        }
+
+        return candidateNodes.get(ThreadLocalRandom.current().nextInt(candidateNodes.size()));
     }
 }

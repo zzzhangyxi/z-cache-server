@@ -18,11 +18,13 @@ package com.zhang.cache.core.metadata.cachenode;
 
 import com.zhang.cache.core.metadata.cachenode.entity.CacheNodeMetadata;
 import com.zhang.cache.core.metadata.cachenode.entity.CacheNodeRuntimeMetadata;
+import com.zhang.cache.core.metadata.cachenode.entity.CacheNodeStatus;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -41,4 +43,19 @@ public class CacheNodeMetadataManager {
     @Getter
     @Setter
     private volatile Map<String, CacheNodeRuntimeMetadata> cacheNodeRuntimeMetadata = new ConcurrentHashMap<>();
+
+    public Map<String, CacheNodeMetadata> getOnlineNodes() {
+        Map<String, CacheNodeMetadata> onlineNodes = new HashMap<>();
+        for (Map.Entry<String, CacheNodeMetadata> entry : cacheNodeMetadata.entrySet()) {
+            String nodeId = entry.getKey();
+            CacheNodeRuntimeMetadata runtimeMetadata = cacheNodeRuntimeMetadata.get(nodeId);
+            if (runtimeMetadata != null) {
+                CacheNodeStatus status = runtimeMetadata.getStatus();
+                if (status != null && CacheNodeStatus.isOnline(status)) {
+                    onlineNodes.put(nodeId, entry.getValue());
+                }
+            }
+        }
+        return onlineNodes;
+    }
 }

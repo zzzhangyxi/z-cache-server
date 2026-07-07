@@ -125,7 +125,8 @@ public class CacheNodeHeartbeatDetector {
     }
 
     private static CacheNodeRuntimeMetadata buildFailedMetadata(String nodeId, CacheNodeRuntimeMetadata runtime, long timestamp) {
-        int currentFailTimes = runtime.getFailedTimes() + 1;
+        Integer failedTimes = runtime == null ? null : runtime.getFailedTimes();
+        int currentFailTimes = (failedTimes == null ? 0 : failedTimes) + 1;
         CacheNodeStatus status;
         if (currentFailTimes >= CacheNodeRuntimeConstants.HEARTBEAT_OFFLINE_THRESHOLD) {
             currentFailTimes = CacheNodeRuntimeConstants.HEARTBEAT_OFFLINE_THRESHOLD;
