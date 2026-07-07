@@ -19,7 +19,6 @@ package com.zhang.cache.core.hash;
 import com.zhang.cache.core.exception.NoAvailableNodeException;
 import com.zhang.cache.core.metadata.cachenode.CacheNodeMetadataManager;
 import com.zhang.cache.core.metadata.cachenode.entity.CacheNodeMetadata;
-import com.zhang.cache.core.metadata.hotkey.HotKeyMetadataManager;
 import com.zhang.cache.core.metadata.hotkey.HotKeyReplicationMetadataManager;
 import com.zhang.cache.core.metadata.hotkey.entity.HotKeyReplicationMetadata;
 import lombok.extern.slf4j.Slf4j;
@@ -44,15 +43,16 @@ public class HashRouter {
     @Autowired
     private HashRingManager hashRingManager;
     @Autowired
-    private HotKeyMetadataManager hotKeyMetadataManager;
-    @Autowired
     private HotKeyReplicationMetadataManager hotKeyReplicationMetadataManager;
     @Autowired
     private CacheNodeMetadataManager cacheNodeMetadataManager;
 
     public CacheNodeMetadata route(String key) {
-        boolean hotKey = hotKeyMetadataManager.isHotKey(key);
-        return hotKey ? hotKeyRoute(key) : basicRoute(key);
+        HotKeyReplicationMetadata replication = getHotKeyReplicationMetadata(key);
+        if (isHotKey(replication)) {
+            return hotKeyRoute(key, replication);
+        }
+        return basicRoute(key);
     }
 
     public CacheNodeMetadata basicRoute(String key) {
@@ -70,15 +70,7 @@ public class HashRouter {
         return targetEntry.getValue();
     }
 
-    public CacheNodeMetadata hotKeyRoute(String key) {
-        Map<String, HotKeyReplicationMetadata> replicationMetadata = hotKeyReplicationMetadataManager.getReplicationMetadata();
-        if (MapUtils.isEmpty(replicationMetadata)) {
-            return basicRoute(key);
-        }
-        HotKeyReplicationMetadata replication = replicationMetadata.get(key);
-        if (replication == null || CollectionUtils.isEmpty(replication.getReplicationNodes())) {
-            return basicRoute(key);
-        }
+    private CacheNodeMetadata hotKeyRoute(String key, HotKeyReplicationMetadata replication) {
         List<CacheNodeMetadata> candidateNodes = new ArrayList<>();
         Map<String, CacheNodeMetadata> onlineNodes = cacheNodeMetadataManager.getOnlineNodes();
 
@@ -102,5 +94,17 @@ public class HashRouter {
         }
 
         return candidateNodes.get(ThreadLocalRandom.current().nextInt(candidateNodes.size()));
+    }
+
+    private boolean isHotKey(HotKeyReplicationMetadata replication) {
+        return replication != null && CollectionUtils.isNotEmpty(replication.getReplicationNodes());
+    }
+
+    private HotKeyReplicationMetadata getHotKeyReplicationMetadata(String key) {
+        Map<String, HotKeyReplicationMetadata> replicationMetadata = hotKeyReplicationMetadataManager.getReplicationMetadata();
+        if (MapUtils.isEmpty(replicationMetadata)) {
+            return null;
+        }
+        return replicationMetadata.get(key);
     }
 }

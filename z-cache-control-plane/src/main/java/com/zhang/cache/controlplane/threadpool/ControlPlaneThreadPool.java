@@ -34,7 +34,7 @@ public class ControlPlaneThreadPool {
             TimeUnit.SECONDS,
             new LinkedBlockingQueue<>(100),
             Executors.defaultThreadFactory(),
-            new ThreadPoolExecutor.DiscardOldestPolicy());
+            new ThreadPoolExecutor.CallerRunsPolicy());
 
     private static final Executor HOT_KEY_REPLICATE_EXECUTOR = new ThreadPoolExecutor(
             Runtime.getRuntime().availableProcessors(),
@@ -43,7 +43,7 @@ public class ControlPlaneThreadPool {
             TimeUnit.SECONDS,
             new LinkedBlockingQueue<>(100),
             Executors.defaultThreadFactory(),
-            new ThreadPoolExecutor.DiscardOldestPolicy());
+            new ThreadPoolExecutor.CallerRunsPolicy());
 
     public static Executor getHeartbeatExecutor() {
         return HEARTBEAT_EXECUTOR;

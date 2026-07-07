@@ -44,6 +44,7 @@ public class BusinessController {
 
     @GetMapping("/read")
     public String read(@RequestParam String key) {
+        validateParam(key);
         return businessService.get(key);
     }
 
@@ -56,8 +57,16 @@ public class BusinessController {
 
     @DeleteMapping("/delete")
     public String delete(@RequestParam String key) {
+        validateParam(key);
         businessService.delete(key);
         return "success";
+    }
+
+    private void validateParam(String key) {
+        if (StringUtils.isBlank(key)) {
+            log.error("Blank key:[{}]", key);
+            throw new InvalidParamException("Invalid request param");
+        }
     }
 
     private void validateParam(BusinessWriteRequestDTO request) {

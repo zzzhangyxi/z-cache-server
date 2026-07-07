@@ -95,6 +95,9 @@ public class CacheNodeHeartbeatDetector {
                     detectResult.put(runtime.getId(), runtime);
                     metadataRepository.updateCacheNodeRuntimeMetadata(runtime);
                 } catch (InterruptedException | ExecutionException e) {
+                    if (e instanceof InterruptedException) {
+                        Thread.currentThread().interrupt();
+                    }
                     log.error("Get detect task failed", e);
                 }
             }
