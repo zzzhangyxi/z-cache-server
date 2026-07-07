@@ -16,8 +16,6 @@
  */
 package com.zhang.cache.core.metadata.hotkey;
 
-import javax.annotation.Nullable;
-
 /**
  * @author zzzhangyxi
  * @since 2026/5/16
@@ -25,15 +23,5 @@ import javax.annotation.Nullable;
 public enum HotKeyStatus {
     ACTIVE,
     COOLING_DOWN,
-    INVALID;
-
-    @Nullable
-    public static HotKeyStatus ofName(String name) {
-        for (HotKeyStatus value : HotKeyStatus.values()) {
-            if (value.name().equals(name)) {
-                return value;
-            }
-        }
-        return null;
-    }
+    INVALID
 }

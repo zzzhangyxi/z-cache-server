@@ -87,31 +87,11 @@ public class HotKeyMetadataManager {
     @Value("${hot-key.absolute-qps-threshold}")
     private int absoluteQpsThreshold;
 
-    public boolean isHotKey(String key) {
-        HotKeyMetadata metadata = hotKeyMetadata.get(key);
-        if (metadata == null) {
-            return false;
-        }
-        return HotKeyStatus.ACTIVE.equals(metadata.getStatus());
-    }
-
     public void recordKey(String key) {
         Map<String, LongAdder> bucket = currentBucket;
         bucket.computeIfAbsent(key, k -> new LongAdder()).increment();
         // update traffic information
         AGGREGATION_COUNTER.computeIfAbsent(key, k -> new AtomicLong()).incrementAndGet();
-    }
-
-    public long getHotKeyAverageQps(String key) {
-        if (!isHotKey(key)) {
-            return 0L;
-        }
-        long totalQps = 0L;
-        for (Map<String, LongAdder> hotKeyBucket : hotKeyBuckets) {
-            long qps = hotKeyBucket.getOrDefault(key, new LongAdder()).sum();
-            totalQps += qps;
-        }
-        return totalQps / getEffectWindowSize();
     }
 
     /**
@@ -123,8 +103,8 @@ public class HotKeyMetadataManager {
      * hot key statistics.
      */
     public void analyzeLocalHotKey() {
-        moveOffset();
         hotKeyMetadata = calculateMetadata();
+        moveOffset();
         eventPublisher.publishEvent(new HotKeyMetadataRefreshEvent());
     }
 
@@ -232,7 +212,7 @@ public class HotKeyMetadataManager {
     }
 
     private int getEffectWindowSize() {
-        return initial ? Math.max(currentIndex, 1) : HotKeyConstants.HOT_KEY_WINDOW_SIZE;
+        return initial ? currentIndex + 1 : HotKeyConstants.HOT_KEY_WINDOW_SIZE;
     }
 
     private HotKeyMetadata buildHotKeyMetadata(String key, HotKeyStatus status, long timestamp) {

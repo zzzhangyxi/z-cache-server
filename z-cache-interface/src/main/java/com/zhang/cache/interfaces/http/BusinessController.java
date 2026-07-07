@@ -55,6 +55,13 @@ public class BusinessController {
         return "success";
     }
 
+    @PostMapping("/write-ex")
+    public String writeEx(@RequestBody BusinessWriteRequestDTO request) {
+        validateParam(request);
+        businessService.setEx(request.getKey(), request.getValue(), request.getExpireTime());
+        return "success";
+    }
+
     @DeleteMapping("/delete")
     public String delete(@RequestParam String key) {
         validateParam(key);

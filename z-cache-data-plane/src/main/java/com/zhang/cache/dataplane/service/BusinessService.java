@@ -66,6 +66,21 @@ public class BusinessService {
         }
     }
 
+    public void setEx(String key, String value, int seconds) {
+        setEx(key, value, seconds, null);
+    }
+
+    public void setEx(String key, String value, int seconds, CacheNodeMetadata node) {
+        boolean specifyNode = node != null;
+        if (!specifyNode) {
+            node = hashRouter.basicRoute(key);
+        }
+        businessRepository.setEx(key, value, seconds, node);
+        if (!specifyNode) {
+            eventPublisher.publishEvent(new WriteKeyEvent(key));
+        }
+    }
+
     public void delete(String key) {
         delete(key, null);
     }

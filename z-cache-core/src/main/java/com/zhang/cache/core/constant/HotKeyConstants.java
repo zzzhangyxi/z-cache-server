@@ -21,5 +21,5 @@ package com.zhang.cache.core.constant;
  * @since 2026/5/15
  */
 public class HotKeyConstants {
-    public static final int HOT_KEY_WINDOW_SIZE = 2;
+    public static final int HOT_KEY_WINDOW_SIZE = 10;
 }
