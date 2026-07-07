@@ -73,7 +73,7 @@ public class BusinessService {
     public void delete(String key, CacheNodeMetadata node) {
         boolean specifyNode = node != null;
         if (!specifyNode) {
-            node = hashRouter.route(key);
+            node = hashRouter.basicRoute(key);
         }
         businessRepository.del(key, node);
         if (!specifyNode) {

@@ -32,5 +32,5 @@ import java.util.Map;
 public class HotKeyReplicationMetadataManager {
     @Getter
     @Setter
-    private Map<String, HotKeyReplicationMetadata> replicationMetadata = new HashMap<>();
+    private volatile Map<String, HotKeyReplicationMetadata> replicationMetadata = new HashMap<>();
 }

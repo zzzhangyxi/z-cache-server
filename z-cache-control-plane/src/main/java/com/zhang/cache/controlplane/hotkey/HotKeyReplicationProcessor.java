@@ -27,6 +27,7 @@ import com.zhang.cache.core.repository.BusinessRepository;
 import com.zhang.cache.core.repository.MetadataRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -114,15 +115,18 @@ public class HotKeyReplicationProcessor {
             log.info("replicaNodes = {}", replicaNodes);
 
             String businessValue = businessRepository.get(hotKey, originNode);
+            if (StringUtils.isBlank(businessValue)) {
+                return;
+            }
             for (CacheNodeMetadata replicaNode : replicaNodes) {
                 businessRepository.set(hotKey, businessValue, replicaNode);
-                HotKeyReplicationMetadata hotKeyReplicationMetadata = HotKeyReplicationMetadata.builder()
-                        .key(hotKey)
-                        .replicationNodes(replicaNodes)
-                        .lastOperationTimestamp(now)
-                        .build();
-                metadataRepository.updateHotKeyReplicaNodes(hotKeyReplicationMetadata);
             }
+            HotKeyReplicationMetadata hotKeyReplicationMetadata = HotKeyReplicationMetadata.builder()
+                    .key(hotKey)
+                    .replicationNodes(replicaNodes)
+                    .lastOperationTimestamp(now)
+                    .build();
+            metadataRepository.updateHotKeyReplicaNodes(hotKeyReplicationMetadata);
         } else {
             log.info("Hot key:[{}] has already been replicated. Do not need to handle it duplicately.", hotKey);
         }
