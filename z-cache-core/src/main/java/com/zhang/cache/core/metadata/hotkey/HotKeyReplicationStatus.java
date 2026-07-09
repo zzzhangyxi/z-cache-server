@@ -22,5 +22,6 @@ package com.zhang.cache.core.metadata.hotkey;
  */
 public enum HotKeyReplicationStatus {
     READY,
-    DELETING
+    DELETING,
+    INVALIDATING
 }

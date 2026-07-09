@@ -16,28 +16,32 @@
  */
 package com.zhang.cache.controlplane.hotkey;
 
-import com.zhang.cache.core.metadata.hotkey.HotKeyReplicationMetadataManager;
+import com.zhang.cache.core.metadata.hotkey.HotKeyWriteVersionManager;
 import com.zhang.cache.core.repository.MetadataRepository;
-import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.MapUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.util.Map;
+
 /**
  * @author zzzhangyxi
- * @since 2026/7/7
+ * @since 2026/7/9
  */
 @Component
-@Slf4j
-public class HotKeyReplicationMetadataSynchronizer {
+public class HotKeyWriteVersionSynchronizer {
+    @Autowired
+    private HotKeyWriteVersionManager hotKeyWriteVersionManager;
     @Autowired
     private MetadataRepository metadataRepository;
-    @Autowired
-    private HotKeyReplicationMetadataManager hotKeyReplicationMetadataManager;
 
     @Scheduled(fixedRate = 1000)
-    public void refreshLocalMetadata() {
-        log.info("Refresh local replication metadata");
-        hotKeyReplicationMetadataManager.setReplicationMetadata(metadataRepository.getAllHotKeyReplicationMetadata());
+    public void refreshRemoteWriteVersions() {
+        Map<String, Long> writeVersions = hotKeyWriteVersionManager.snapshot();
+        if (MapUtils.isEmpty(writeVersions)) {
+            return;
+        }
+        metadataRepository.updateHotKeyWriteVersions(writeVersions);
     }
 }

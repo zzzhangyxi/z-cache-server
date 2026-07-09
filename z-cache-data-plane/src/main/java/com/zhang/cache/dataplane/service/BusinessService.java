@@ -18,6 +18,7 @@ package com.zhang.cache.dataplane.service;
 
 import com.zhang.cache.core.event.EventPublisher;
 import com.zhang.cache.core.metadata.cachenode.entity.CacheNodeMetadata;
+import com.zhang.cache.core.metadata.hotkey.HotKeyWriteVersionManager;
 import com.zhang.cache.core.repository.BusinessRepository;
 import com.zhang.cache.core.hash.HashRouter;
 import com.zhang.cache.dataplane.event.entity.ReadKeyEvent;
@@ -37,6 +38,8 @@ public class BusinessService {
     private BusinessRepository businessRepository;
     @Autowired
     private EventPublisher eventPublisher;
+    @Autowired
+    private HotKeyWriteVersionManager hotKeyWriteVersionManager;
 
     public String get(String key) {
         return get(key, null);
@@ -62,6 +65,7 @@ public class BusinessService {
         }
         businessRepository.set(key, value, node);
         if (!specifyNode) {
+            hotKeyWriteVersionManager.markWritten(key);
             eventPublisher.publishEvent(new WriteKeyEvent(key));
         }
     }
@@ -77,6 +81,7 @@ public class BusinessService {
         }
         businessRepository.setEx(key, value, seconds, node);
         if (!specifyNode) {
+            hotKeyWriteVersionManager.markWritten(key);
             eventPublisher.publishEvent(new WriteKeyEvent(key));
         }
     }
@@ -92,6 +97,7 @@ public class BusinessService {
         }
         businessRepository.del(key, node);
         if (!specifyNode) {
+            hotKeyWriteVersionManager.markWritten(key);
             eventPublisher.publishEvent(new WriteKeyEvent(key));
         }
     }

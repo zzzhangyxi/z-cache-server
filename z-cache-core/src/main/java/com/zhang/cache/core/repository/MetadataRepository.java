@@ -52,5 +52,9 @@ public interface MetadataRepository {
 
     void deleteHotKeyReplicationMetadata(String hotKey);
 
+    void updateHotKeyWriteVersions(Map<String, Long> hotKeyWriteVersions);
+
+    Map<String, Long> getAllHotKeyWriteVersions();
+
     void updateCacheNodeRuntimeMetadata(CacheNodeRuntimeMetadata cacheNodeRuntimeMetadata);
 }

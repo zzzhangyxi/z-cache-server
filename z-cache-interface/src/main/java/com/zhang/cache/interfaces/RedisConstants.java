@@ -25,5 +25,6 @@ public class RedisConstants {
     public static final String CACHE_NODE_RUNTIME_KEY = "cache:runtime";
     public static final String HOT_KEY_METADATA_KEY = "hotkey:metadata";
     public static final String HOT_KEY_REPLICATION = "hotkey:replication";
+    public static final String HOT_KEY_WRITE_VERSION = "hotkey:write-version";
     public static final String BUSINESS_DATA_KEY_PREFIX = "business:";
 }

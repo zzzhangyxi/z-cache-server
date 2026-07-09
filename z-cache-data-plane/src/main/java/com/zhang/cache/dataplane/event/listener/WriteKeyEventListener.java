@@ -17,15 +17,30 @@
 package com.zhang.cache.dataplane.event.listener;
 
 import com.zhang.cache.core.event.EventListener;
+import com.zhang.cache.core.metadata.hotkey.HotKeyReplicationMetadataManager;
+import com.zhang.cache.core.metadata.hotkey.HotKeyReplicationStatus;
+import com.zhang.cache.core.metadata.hotkey.entity.HotKeyReplicationMetadata;
 import com.zhang.cache.dataplane.event.entity.WriteKeyEvent;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @author zzzhangyxi
  * @since 2026/5/16
  */
 @Component
+@Slf4j
 public class WriteKeyEventListener implements EventListener<WriteKeyEvent> {
+    @Autowired
+    private HotKeyReplicationMetadataManager hotKeyReplicationMetadataManager;
+
     @Override
     public Class<WriteKeyEvent> supportType() {
         return WriteKeyEvent.class;
@@ -33,6 +48,36 @@ public class WriteKeyEventListener implements EventListener<WriteKeyEvent> {
 
     @Override
     public void onEvent(WriteKeyEvent event) {
-        // TODO 补充逻辑
+        if (event == null || StringUtils.isBlank(event.getKey())) {
+            return;
+        }
+
+        String key = event.getKey();
+        Map<String, HotKeyReplicationMetadata> currentReplicationMetadata =
+                hotKeyReplicationMetadataManager.getReplicationMetadata();
+        if (MapUtils.isEmpty(currentReplicationMetadata)) {
+            return;
+        }
+
+        HotKeyReplicationMetadata replicationMetadata = currentReplicationMetadata.get(key);
+        if (replicationMetadata == null || CollectionUtils.isEmpty(replicationMetadata.getReplicationNodes())) {
+            return;
+        }
+
+        replicationMetadata.setStatus(HotKeyReplicationStatus.INVALIDATING);
+        replicationMetadata.setLastOperationTimestamp(System.currentTimeMillis());
+        refreshLocalReplicationMetadata(replicationMetadata);
+        log.info("Hot key:[{}] replica metadata has been marked as INVALIDATING by write event.", key);
+    }
+
+    private void refreshLocalReplicationMetadata(HotKeyReplicationMetadata replicationMetadata) {
+        Map<String, HotKeyReplicationMetadata> currentReplicationMetadata =
+                hotKeyReplicationMetadataManager.getReplicationMetadata();
+        Map<String, HotKeyReplicationMetadata> refreshedReplicationMetadata = new HashMap<>();
+        if (currentReplicationMetadata != null) {
+            refreshedReplicationMetadata.putAll(currentReplicationMetadata);
+        }
+        refreshedReplicationMetadata.put(replicationMetadata.getKey(), replicationMetadata);
+        hotKeyReplicationMetadataManager.setReplicationMetadata(refreshedReplicationMetadata);
     }
 }

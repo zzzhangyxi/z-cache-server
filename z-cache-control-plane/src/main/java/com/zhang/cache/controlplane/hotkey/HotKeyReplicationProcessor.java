@@ -48,7 +48,7 @@ import java.util.Set;
 @Component
 @Slf4j
 public class HotKeyReplicationProcessor {
-    private static final long REPLICA_DELETE_DELAY_MILLIS = 10000L;
+    private static final long REPLICA_DELETE_DELAY_MILLIS = 5000L;
 
     @Autowired
     private CacheNodeMetadataManager cacheNodeMetadataManager;
@@ -65,7 +65,7 @@ public class HotKeyReplicationProcessor {
      * However, this logic can only be executed once at the same time, so a distributed lock is required to ensure
      * only one executor can do the scheduling.
      */
-    @Scheduled(fixedRate = 5000)
+    @Scheduled(fixedRate = 3000)
     public void replicateDetectedHotKeys() {
         long now = System.currentTimeMillis();
         // Try to get the distributed lock.
@@ -80,6 +80,7 @@ public class HotKeyReplicationProcessor {
         try {
             Map<String, Map<String, HotKeyMetadata>> allHotKeyMetadata = metadataRepository.getAllHotKeyMetadata();
             Map<String, HotKeyReplicationMetadata> allReplicationMetadata = metadataRepository.getAllHotKeyReplicationMetadata();
+            Map<String, Long> allWriteVersions = metadataRepository.getAllHotKeyWriteVersions();
             if (MapUtils.isEmpty(allHotKeyMetadata) && MapUtils.isEmpty(allReplicationMetadata)) {
                 log.info("No hot key metadata or replica metadata found. Do not start scheduling replication.");
                 return;
@@ -110,12 +111,12 @@ public class HotKeyReplicationProcessor {
                 }
             }
 
-            processReplicationLifecycle(allReplicationMetadata, activeOrCoolingDownKeys, now);
+            processReplicationLifecycle(allReplicationMetadata, activeOrCoolingDownKeys, allWriteVersions, now);
 
             for (Map.Entry<String, Integer> counter : hotKeyCounter.entrySet()) {
                 int activeNodeCount = counter.getValue();
                 if (activeNodeCount >= nodeThreshold) {
-                    doReplicateHotKey(counter.getKey(), activeNodeCount);
+                    doReplicateHotKey(counter.getKey(), activeNodeCount, allWriteVersions);
                 }
             }
         } catch (Exception e) {
@@ -128,6 +129,7 @@ public class HotKeyReplicationProcessor {
     private void processReplicationLifecycle(
             Map<String, HotKeyReplicationMetadata> allReplicationMetadata,
             Set<String> activeOrCoolingDownKeys,
+            Map<String, Long> allWriteVersions,
             long now) {
         if (MapUtils.isEmpty(allReplicationMetadata)) {
             return;
@@ -135,12 +137,53 @@ public class HotKeyReplicationProcessor {
 
         for (Map.Entry<String, HotKeyReplicationMetadata> entry : allReplicationMetadata.entrySet()) {
             String hotKey = entry.getKey();
-            if (activeOrCoolingDownKeys.contains(hotKey)) {
-                restoreReadyIfNecessary(hotKey, entry.getValue(), now);
+            HotKeyReplicationMetadata replicationMetadata = entry.getValue();
+            if (isReplicationDataStale(hotKey, replicationMetadata, allWriteVersions)) {
+                markInvalidating(hotKey, replicationMetadata, allWriteVersions, now);
                 continue;
             }
-            cleanColdHotKey(hotKey, entry.getValue(), now);
+            if (isInvalidating(replicationMetadata)) {
+                cleanInvalidatingHotKey(hotKey, replicationMetadata, now);
+                continue;
+            }
+            if (activeOrCoolingDownKeys.contains(hotKey)) {
+                restoreReadyIfNecessary(hotKey, replicationMetadata, now);
+                continue;
+            }
+            cleanColdHotKey(hotKey, replicationMetadata, now);
         }
+    }
+
+    private boolean isReplicationDataStale(
+            String hotKey,
+            HotKeyReplicationMetadata replicationMetadata,
+            Map<String, Long> allWriteVersions) {
+        if (replicationMetadata == null || !isReady(replicationMetadata)) {
+            return false;
+        }
+        return replicationMetadata.getWriteVersion() != getWriteVersion(hotKey, allWriteVersions);
+    }
+
+    private boolean isReady(HotKeyReplicationMetadata replicationMetadata) {
+        HotKeyReplicationStatus status = replicationMetadata.getStatus();
+        return status == null || HotKeyReplicationStatus.READY.equals(status);
+    }
+
+    private void markInvalidating(
+            String hotKey,
+            HotKeyReplicationMetadata replicationMetadata,
+            Map<String, Long> allWriteVersions,
+            long now) {
+        replicationMetadata.setStatus(HotKeyReplicationStatus.INVALIDATING);
+        replicationMetadata.setLastOperationTimestamp(now);
+        replicationMetadata.setWriteVersion(getWriteVersion(hotKey, allWriteVersions));
+        metadataRepository.updateHotKeyReplicaNodes(replicationMetadata);
+        log.info("Hot key:[{}] replica metadata has been marked as INVALIDATING because write version changed.", hotKey);
+    }
+
+    private boolean isInvalidating(HotKeyReplicationMetadata replicationMetadata) {
+        return replicationMetadata != null
+                && HotKeyReplicationStatus.INVALIDATING.equals(replicationMetadata.getStatus());
     }
 
     private void restoreReadyIfNecessary(String hotKey, HotKeyReplicationMetadata replicationMetadata, long now) {
@@ -151,6 +194,22 @@ public class HotKeyReplicationProcessor {
         replicationMetadata.setLastOperationTimestamp(now);
         metadataRepository.updateHotKeyReplicaNodes(replicationMetadata);
         log.info("Hot key:[{}] becomes active again. Restore replica metadata to READY.", hotKey);
+    }
+
+    private void cleanInvalidatingHotKey(String hotKey, HotKeyReplicationMetadata replicationMetadata, long now) {
+        if (replicationMetadata == null || CollectionUtils.isEmpty(replicationMetadata.getReplicationNodes())) {
+            metadataRepository.deleteHotKeyReplicationMetadata(hotKey);
+            log.info("No replica nodes found for invalidating hot key:[{}].", hotKey);
+            return;
+        }
+
+        if (now - replicationMetadata.getLastOperationTimestamp() < REPLICA_DELETE_DELAY_MILLIS) {
+            return;
+        }
+
+        deleteReplicaData(hotKey, replicationMetadata.getReplicationNodes());
+        metadataRepository.deleteHotKeyReplicationMetadata(hotKey);
+        log.info("Invalidating hot key:[{}] replica data and metadata have been cleaned.", hotKey);
     }
 
     private void cleanColdHotKey(String hotKey, HotKeyReplicationMetadata replicationMetadata, long now) {
@@ -173,18 +232,23 @@ public class HotKeyReplicationProcessor {
             return;
         }
 
-        for (CacheNodeMetadata replicaNode : replicationMetadata.getReplicationNodes()) {
+        deleteReplicaData(hotKey, replicationMetadata.getReplicationNodes());
+        metadataRepository.deleteHotKeyReplicationMetadata(hotKey);
+        log.info("Cold hot key:[{}] replica data has been cleaned.", hotKey);
+    }
+
+    private void deleteReplicaData(String hotKey, List<CacheNodeMetadata> replicaNodes) {
+        for (CacheNodeMetadata replicaNode : replicaNodes) {
             if (replicaNode == null) {
                 continue;
             }
             businessRepository.del(hotKey, replicaNode);
         }
-        metadataRepository.deleteHotKeyReplicationMetadata(hotKey);
-        log.info("Cold hot key:[{}] replica data has been cleaned.", hotKey);
     }
 
-    private void doReplicateHotKey(String hotKey, int activeNodeCount) {
+    private void doReplicateHotKey(String hotKey, int activeNodeCount, Map<String, Long> allWriteVersions) {
         long now = System.currentTimeMillis();
+        long writeVersion = getWriteVersion(hotKey, allWriteVersions);
         HotKeyReplicationMetadata replicationMetadata = metadataRepository.getHotKeyReplicationMetadata(hotKey);
         if (replicationMetadata == null) {
             Map<String, CacheNodeMetadata> onlineNodes = cacheNodeMetadataManager.getOnlineNodes();
@@ -213,11 +277,20 @@ public class HotKeyReplicationProcessor {
                     .replicationNodes(replicaNodes)
                     .status(HotKeyReplicationStatus.READY)
                     .lastOperationTimestamp(now)
+                    .writeVersion(writeVersion)
                     .build();
             metadataRepository.updateHotKeyReplicaNodes(hotKeyReplicationMetadata);
         } else {
             log.info("Hot key:[{}] has already been replicated. Do not need to handle it duplicately.", hotKey);
         }
+    }
+
+    private long getWriteVersion(String hotKey, Map<String, Long> allWriteVersions) {
+        if (MapUtils.isEmpty(allWriteVersions)) {
+            return 0L;
+        }
+        Long writeVersion = allWriteVersions.get(hotKey);
+        return writeVersion == null ? 0L : writeVersion;
     }
 
     private List<CacheNodeMetadata> getReplicaNodes(

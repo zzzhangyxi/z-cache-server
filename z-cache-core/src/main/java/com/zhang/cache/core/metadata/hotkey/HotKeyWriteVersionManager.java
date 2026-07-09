@@ -14,30 +14,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.zhang.cache.controlplane.hotkey;
+package com.zhang.cache.core.metadata.hotkey;
 
-import com.zhang.cache.core.metadata.hotkey.HotKeyReplicationMetadataManager;
-import com.zhang.cache.core.repository.MetadataRepository;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Scheduled;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @author zzzhangyxi
- * @since 2026/7/7
+ * @since 2026/7/9
  */
 @Component
-@Slf4j
-public class HotKeyReplicationMetadataSynchronizer {
-    @Autowired
-    private MetadataRepository metadataRepository;
-    @Autowired
-    private HotKeyReplicationMetadataManager hotKeyReplicationMetadataManager;
+public class HotKeyWriteVersionManager {
+    private final ConcurrentMap<String, AtomicLong> writeVersions = new ConcurrentHashMap<>();
 
-    @Scheduled(fixedRate = 1000)
-    public void refreshLocalMetadata() {
-        log.info("Refresh local replication metadata");
-        hotKeyReplicationMetadataManager.setReplicationMetadata(metadataRepository.getAllHotKeyReplicationMetadata());
+    public void markWritten(String key) {
+        if (StringUtils.isBlank(key)) {
+            return;
+        }
+        writeVersions.computeIfAbsent(key, k -> new AtomicLong()).incrementAndGet();
+    }
+
+    public Map<String, Long> snapshot() {
+        Map<String, Long> snapshot = new HashMap<>();
+        writeVersions.forEach((key, version) -> snapshot.put(key, version.longValue()));
+        return snapshot;
     }
 }

@@ -34,4 +34,5 @@ public class HotKeyReplicationMetadata {
     private List<CacheNodeMetadata> replicationNodes;
     private HotKeyReplicationStatus status;
     private long lastOperationTimestamp;
+    private long writeVersion;
 }

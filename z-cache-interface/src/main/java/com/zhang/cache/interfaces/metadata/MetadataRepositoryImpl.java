@@ -169,6 +169,45 @@ public class MetadataRepositoryImpl implements MetadataRepository {
     }
 
     @Override
+    public void updateHotKeyWriteVersions(Map<String, Long> hotKeyWriteVersions) {
+        if (MapUtils.isEmpty(hotKeyWriteVersions)) {
+            return;
+        }
+        redisCommands.hset(
+                RedisConstants.HOT_KEY_WRITE_VERSION,
+                nodeIdentityGenerator.getNodeId(),
+                JSON.toJSONString(hotKeyWriteVersions));
+    }
+
+    @Override
+    public Map<String, Long> getAllHotKeyWriteVersions() {
+        Map<String, String> rawData = redisCommands.hgetall(RedisConstants.HOT_KEY_WRITE_VERSION);
+        Map<String, Long> hotKeyWriteVersions = new HashMap<>();
+        if (MapUtils.isEmpty(rawData)) {
+            return hotKeyWriteVersions;
+        }
+
+        for (String singleNodeWriteVersions : rawData.values()) {
+            if (StringUtils.isBlank(singleNodeWriteVersions)) {
+                continue;
+            }
+            Map<String, Long> nodeWriteVersions = JSON.parseObject(
+                    singleNodeWriteVersions, new TypeReference<Map<String, Long>>() {});
+            if (MapUtils.isEmpty(nodeWriteVersions)) {
+                continue;
+            }
+            nodeWriteVersions.forEach((key, version) -> {
+                if (StringUtils.isBlank(key) || version == null) {
+                    return;
+                }
+                hotKeyWriteVersions.merge(key, version, Long::sum);
+            });
+        }
+        log.info("Hotkey write versions:[{}]", JSON.toJSONString(hotKeyWriteVersions));
+        return hotKeyWriteVersions;
+    }
+
+    @Override
     public void updateCacheNodeRuntimeMetadata(CacheNodeRuntimeMetadata cacheNodeRuntimeMetadata) {
         String jsonString = JSON.toJSONString(cacheNodeRuntimeMetadata);
         redisCommands.hset(RedisConstants.CACHE_NODE_RUNTIME_KEY, cacheNodeRuntimeMetadata.getId(), jsonString);
