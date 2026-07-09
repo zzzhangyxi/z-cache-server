@@ -19,9 +19,15 @@ package com.zhang.cache.interfaces.business;
 import com.zhang.cache.core.metadata.cachenode.entity.CacheNodeMetadata;
 import com.zhang.cache.core.repository.BusinessRepository;
 import com.zhang.cache.interfaces.RedisConstants;
+import io.lettuce.core.KeyScanCursor;
+import io.lettuce.core.ScanArgs;
+import io.lettuce.core.ScanCursor;
 import io.lettuce.core.api.sync.RedisCommands;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
+
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * @author zzzhangyxi
@@ -53,6 +59,31 @@ public class BusinessRepositoryImpl implements BusinessRepository {
     }
 
     @Override
+    public Set<String> scanKeys(CacheNodeMetadata metadata) {
+        RedisCommands<String, String> connection = getConnection(metadata);
+        Set<String> keys = new HashSet<>();
+        ScanArgs scanArgs = ScanArgs.Builder
+                .matches(RedisConstants.BUSINESS_DATA_KEY_PREFIX + "*")
+                .limit(1000);
+
+        ScanCursor scanCursor = ScanCursor.INITIAL;
+        do {
+            KeyScanCursor<String> keyScanCursor = connection.scan(scanCursor, scanArgs);
+            for (String storageKey : keyScanCursor.getKeys()) {
+                keys.add(unwrapKey(storageKey));
+            }
+            scanCursor = keyScanCursor;
+        } while (!scanCursor.isFinished());
+
+        return keys;
+    }
+
+    @Override
+    public Long ttl(String key, CacheNodeMetadata metadata) {
+        return getConnection(metadata).ttl(wrapKey(key));
+    }
+
+    @Override
     public String ping(CacheNodeMetadata node) {
         return getConnection(node).ping();
     }
@@ -63,5 +94,12 @@ public class BusinessRepositoryImpl implements BusinessRepository {
 
     private String wrapKey(String key) {
         return RedisConstants.BUSINESS_DATA_KEY_PREFIX + key;
+    }
+
+    private String unwrapKey(String storageKey) {
+        if (storageKey == null || !storageKey.startsWith(RedisConstants.BUSINESS_DATA_KEY_PREFIX)) {
+            return storageKey;
+        }
+        return storageKey.substring(RedisConstants.BUSINESS_DATA_KEY_PREFIX.length());
     }
 }

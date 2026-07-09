@@ -18,6 +18,8 @@ package com.zhang.cache.core.repository;
 
 import com.zhang.cache.core.metadata.cachenode.entity.CacheNodeMetadata;
 
+import java.util.Set;
+
 /**
  * Contains single string value read and write command only.
  * The main purpose of this project is to optimize performance, instead of reimplementing a new RedisTemplate
@@ -57,6 +59,21 @@ public interface BusinessRepository {
      * @param metadata cache node
      */
     void del(String key, CacheNodeMetadata metadata);
+
+    /**
+     * Scan all business keys in a cache node.
+     * @param metadata cache node
+     * @return logical business keys without storage prefix
+     */
+    Set<String> scanKeys(CacheNodeMetadata metadata);
+
+    /**
+     * Get ttl of a business key.
+     * @param key data key
+     * @param metadata cache node
+     * @return ttl in seconds
+     */
+    Long ttl(String key, CacheNodeMetadata metadata);
 
     /**
      * Detect heartbeat with a business cache node.
