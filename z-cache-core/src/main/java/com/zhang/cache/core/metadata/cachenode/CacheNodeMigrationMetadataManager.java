@@ -14,18 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.zhang.cache.interfaces;
+package com.zhang.cache.core.metadata.cachenode;
+
+import com.zhang.cache.core.metadata.cachenode.entity.CacheNodeMigrationMetadata;
+import lombok.Getter;
+import lombok.Setter;
+import org.springframework.stereotype.Component;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @author zzzhangyxi
- * @since 2026/5/13
+ * @since 2026/7/9
  */
-public class RedisConstants {
-    public static final String CACHE_NODE_METADATA_KEY = "cache:metadata";
-    public static final String CACHE_NODE_RUNTIME_KEY = "cache:runtime";
-    public static final String CACHE_NODE_MIGRATION_KEY = "cache:migration";
-    public static final String HOT_KEY_METADATA_KEY = "hotkey:metadata";
-    public static final String HOT_KEY_REPLICATION = "hotkey:replication";
-    public static final String HOT_KEY_WRITE_VERSION = "hotkey:write-version";
-    public static final String BUSINESS_DATA_KEY_PREFIX = "business:";
+@Component
+public class CacheNodeMigrationMetadataManager {
+    @Getter
+    @Setter
+    private volatile Map<String, CacheNodeMigrationMetadata> migrationMetadata = new HashMap<>();
 }

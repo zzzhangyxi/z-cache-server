@@ -46,7 +46,7 @@ public class CacheNodeMetadataSynchronizer {
      * so concurrent issues does not exist here.<br>
      * Volatile keyword is necessary to avoid visibility issues.
      */
-    @Scheduled(fixedRate = 5000)
+    @Scheduled(fixedRate = 1000)
     public synchronized void startScheduledRefreshLocalMetadata() {
         log.info("start to schedule refresh local metadata...");
 

@@ -21,6 +21,7 @@ import com.alibaba.fastjson.TypeReference;
 import com.zhang.cache.core.constant.DistributedLockConstants;
 import com.zhang.cache.core.identity.NodeIdentityGenerator;
 import com.zhang.cache.core.metadata.cachenode.entity.CacheNodeMetadata;
+import com.zhang.cache.core.metadata.cachenode.entity.CacheNodeMigrationMetadata;
 import com.zhang.cache.core.metadata.cachenode.entity.CacheNodeRuntimeMetadata;
 import com.zhang.cache.core.metadata.hotkey.entity.HotKeyMetadata;
 import com.zhang.cache.core.metadata.hotkey.entity.HotKeyReplicationMetadata;
@@ -102,6 +103,18 @@ public class MetadataRepositoryImpl implements MetadataRepository {
     }
 
     @Override
+    public Map<String, CacheNodeMigrationMetadata> getAllCacheNodeMigrationMetadata() {
+        Map<String, String> rawData = redisCommands.hgetall(RedisConstants.CACHE_NODE_MIGRATION_KEY);
+        Map<String, CacheNodeMigrationMetadata> migrationMetadata = new HashMap<>();
+        if (MapUtils.isNotEmpty(rawData)) {
+            rawData.forEach((nodeId, metadata) ->
+                    migrationMetadata.put(nodeId, JSON.parseObject(metadata, CacheNodeMigrationMetadata.class)));
+        }
+        log.info("Cache node migration metadata:[{}]", JSON.toJSONString(migrationMetadata));
+        return migrationMetadata;
+    }
+
+    @Override
     public Map<String, Map<String, HotKeyMetadata>> getAllHotKeyMetadata() {
         Map<String, String> rawData = redisCommands.hgetall(RedisConstants.HOT_KEY_METADATA_KEY);
         Map<String, Map<String, HotKeyMetadata>> hotKeyMetadata = new HashMap<>();
@@ -122,6 +135,19 @@ public class MetadataRepositoryImpl implements MetadataRepository {
         String nodeId = cacheNodeMetadata.getId();
         String metadata = JSON.toJSONString(cacheNodeMetadata);
         redisCommands.hset(RedisConstants.CACHE_NODE_METADATA_KEY, nodeId, metadata);
+    }
+
+    @Override
+    public void updateCacheNodeMigrationMetadata(CacheNodeMigrationMetadata migrationMetadata) {
+        redisCommands.hset(
+                RedisConstants.CACHE_NODE_MIGRATION_KEY,
+                migrationMetadata.getNewNodeId(),
+                JSON.toJSONString(migrationMetadata));
+    }
+
+    @Override
+    public void deleteCacheNodeMigrationMetadata(String newNodeId) {
+        redisCommands.hdel(RedisConstants.CACHE_NODE_MIGRATION_KEY, newNodeId);
     }
 
     @Override

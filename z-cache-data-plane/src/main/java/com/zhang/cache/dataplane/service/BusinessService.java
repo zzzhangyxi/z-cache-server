@@ -26,6 +26,8 @@ import com.zhang.cache.dataplane.event.entity.WriteKeyEvent;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 /**
  * @author zzzhangyxi
  * @since 2026/5/13
@@ -60,10 +62,13 @@ public class BusinessService {
     public void set(String key, String value, CacheNodeMetadata node) {
         boolean specifyNode = node != null;
         if (!specifyNode) {
-            // only origin node
-            node = hashRouter.basicRoute(key);
+            List<CacheNodeMetadata> writeNodes = hashRouter.writeRoute(key);
+            for (CacheNodeMetadata writeNode : writeNodes) {
+                businessRepository.set(key, value, writeNode);
+            }
+        } else {
+            businessRepository.set(key, value, node);
         }
-        businessRepository.set(key, value, node);
         if (!specifyNode) {
             hotKeyWriteVersionManager.markWritten(key);
             eventPublisher.publishEvent(new WriteKeyEvent(key));
@@ -77,9 +82,13 @@ public class BusinessService {
     public void setEx(String key, String value, int seconds, CacheNodeMetadata node) {
         boolean specifyNode = node != null;
         if (!specifyNode) {
-            node = hashRouter.basicRoute(key);
+            List<CacheNodeMetadata> writeNodes = hashRouter.writeRoute(key);
+            for (CacheNodeMetadata writeNode : writeNodes) {
+                businessRepository.setEx(key, value, seconds, writeNode);
+            }
+        } else {
+            businessRepository.setEx(key, value, seconds, node);
         }
-        businessRepository.setEx(key, value, seconds, node);
         if (!specifyNode) {
             hotKeyWriteVersionManager.markWritten(key);
             eventPublisher.publishEvent(new WriteKeyEvent(key));
@@ -93,9 +102,13 @@ public class BusinessService {
     public void delete(String key, CacheNodeMetadata node) {
         boolean specifyNode = node != null;
         if (!specifyNode) {
-            node = hashRouter.basicRoute(key);
+            List<CacheNodeMetadata> writeNodes = hashRouter.writeRoute(key);
+            for (CacheNodeMetadata writeNode : writeNodes) {
+                businessRepository.del(key, writeNode);
+            }
+        } else {
+            businessRepository.del(key, node);
         }
-        businessRepository.del(key, node);
         if (!specifyNode) {
             hotKeyWriteVersionManager.markWritten(key);
             eventPublisher.publishEvent(new WriteKeyEvent(key));

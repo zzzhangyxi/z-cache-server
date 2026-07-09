@@ -56,7 +56,7 @@ public class CacheNodeHeartbeatDetector {
     @Autowired
     private EventPublisher eventPublisher;
 
-    @Scheduled(fixedRate = 5000)
+    @Scheduled(fixedRate = 1000)
     public void heartbeat() {
         long now = System.currentTimeMillis();
 

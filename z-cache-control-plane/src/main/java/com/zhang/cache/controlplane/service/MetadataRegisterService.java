@@ -19,6 +19,8 @@ package com.zhang.cache.controlplane.service;
 import com.zhang.cache.core.constant.HashRingConstants;
 import com.zhang.cache.core.hash.HashUtils;
 import com.zhang.cache.core.metadata.cachenode.entity.CacheNodeMetadata;
+import com.zhang.cache.core.metadata.cachenode.entity.CacheNodeMigrationMetadata;
+import com.zhang.cache.core.metadata.cachenode.entity.CacheNodeMigrationStatus;
 import com.zhang.cache.core.metadata.cachenode.entity.CacheNodeRuntimeMetadata;
 import com.zhang.cache.core.metadata.cachenode.entity.CacheNodeStatus;
 import com.zhang.cache.core.repository.BusinessRepository;
@@ -44,6 +46,8 @@ import java.util.TreeMap;
 @Service
 @Slf4j
 public class MetadataRegisterService {
+    private static final long MIGRATION_METADATA_PROPAGATION_DELAY_MILLIS = 5000L;
+
     @Autowired
     private MetadataRepository metadataRepository;
     @Autowired
@@ -67,12 +71,40 @@ public class MetadataRegisterService {
                 .version(1L)
                 .build();
         metadataRepository.register(cacheNodeMetadata);
+        updateMigrationStatus(cacheNodeMetadata, CacheNodeMigrationStatus.DUAL_WRITE_READ_OLD);
+        waitForMigrationMetadataPropagation();
         migrateDataToNewNode(cacheNodeMetadata);
 
         cacheNodeRuntimeMetadata.setStatus(CacheNodeStatus.ONLINE);
         cacheNodeRuntimeMetadata.setLastHeartbeatTimestamp(System.currentTimeMillis());
         metadataRepository.updateCacheNodeRuntimeMetadata(cacheNodeRuntimeMetadata);
+        updateMigrationStatus(cacheNodeMetadata, CacheNodeMigrationStatus.DUAL_WRITE_READ_NEW);
+        waitForMigrationMetadataPropagation();
+        updateMigrationStatus(cacheNodeMetadata, CacheNodeMigrationStatus.READ_NEW_ONLY);
+        waitForMigrationMetadataPropagation();
+        cleanMigratedDataFromOldNodes(cacheNodeMetadata);
+        metadataRepository.deleteCacheNodeMigrationMetadata(cacheNodeMetadata.getId());
         log.info("Cache node:[{}] has been registered and set to ONLINE.", id);
+    }
+
+    private void updateMigrationStatus(CacheNodeMetadata newNode, CacheNodeMigrationStatus status) {
+        CacheNodeMigrationMetadata migrationMetadata = CacheNodeMigrationMetadata.builder()
+                .newNodeId(newNode.getId())
+                .newNode(newNode)
+                .status(status)
+                .lastOperationTimestamp(System.currentTimeMillis())
+                .build();
+        metadataRepository.updateCacheNodeMigrationMetadata(migrationMetadata);
+        log.info("Cache node:[{}] migration status has been updated to [{}].", newNode.getId(), status);
+    }
+
+    private void waitForMigrationMetadataPropagation() {
+        try {
+            Thread.sleep(MIGRATION_METADATA_PROPAGATION_DELAY_MILLIS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted while waiting for migration metadata propagation.", e);
+        }
     }
 
     private void migrateDataToNewNode(CacheNodeMetadata newNode) {
@@ -95,6 +127,27 @@ public class MetadataRegisterService {
 
         for (CacheNodeMetadata sourceNode : oldOnlineNodes) {
             migrateNodeData(sourceNode, newNode, oldHashRing, newHashRing);
+        }
+    }
+
+    private void cleanMigratedDataFromOldNodes(CacheNodeMetadata newNode) {
+        Map<String, CacheNodeMetadata> allNodeMetadata = metadataRepository.getAllCacheNodeMetadata();
+        Map<String, CacheNodeRuntimeMetadata> allRuntimeMetadata = metadataRepository.getAllCacheNodeRuntimeMetadata();
+        List<CacheNodeMetadata> oldOnlineNodes = getOldOnlineNodes(newNode, allNodeMetadata, allRuntimeMetadata);
+        if (oldOnlineNodes.isEmpty()) {
+            return;
+        }
+
+        NavigableMap<Long, CacheNodeMetadata> oldHashRing = buildHashRing(oldOnlineNodes);
+        List<CacheNodeMetadata> newRingNodes = new ArrayList<>(oldOnlineNodes);
+        newRingNodes.add(newNode);
+        NavigableMap<Long, CacheNodeMetadata> newHashRing = buildHashRing(newRingNodes);
+        if (oldHashRing.isEmpty() || newHashRing.isEmpty()) {
+            return;
+        }
+
+        for (CacheNodeMetadata sourceNode : oldOnlineNodes) {
+            cleanNodeMigratedData(sourceNode, newNode, oldHashRing, newHashRing);
         }
     }
 
@@ -144,6 +197,31 @@ public class MetadataRegisterService {
         }
     }
 
+    private void cleanNodeMigratedData(
+            CacheNodeMetadata sourceNode,
+            CacheNodeMetadata newNode,
+            NavigableMap<Long, CacheNodeMetadata> oldHashRing,
+            NavigableMap<Long, CacheNodeMetadata> newHashRing) {
+        Set<String> keys = businessRepository.scanKeys(sourceNode);
+        if (keys.isEmpty()) {
+            return;
+        }
+
+        for (String key : keys) {
+            CacheNodeMetadata oldOwner = route(key, oldHashRing);
+            CacheNodeMetadata newOwner = route(key, newHashRing);
+            if (oldOwner == null || newOwner == null) {
+                continue;
+            }
+            if (!Strings.CS.equals(oldOwner.getId(), sourceNode.getId())
+                    || !Strings.CS.equals(newOwner.getId(), newNode.getId())) {
+                continue;
+            }
+            businessRepository.del(key, sourceNode);
+            log.info("Clean migrated key:[{}] from old node:[{}].", key, sourceNode.getId());
+        }
+    }
+
     private void moveKey(String key, CacheNodeMetadata sourceNode, CacheNodeMetadata targetNode) {
         String value = businessRepository.get(key, sourceNode);
         if (value == null) {
@@ -159,8 +237,7 @@ public class MetadataRegisterService {
         } else {
             businessRepository.set(key, value, targetNode);
         }
-        businessRepository.del(key, sourceNode);
-        log.info("Migrate key:[{}] from node:[{}] to new node:[{}].", key, sourceNode.getId(), targetNode.getId());
+        log.info("Copy key:[{}] from node:[{}] to new node:[{}].", key, sourceNode.getId(), targetNode.getId());
     }
 
     private NavigableMap<Long, CacheNodeMetadata> buildHashRing(Collection<CacheNodeMetadata> nodes) {
