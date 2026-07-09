@@ -14,24 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.zhang.cache.core.metadata.hotkey.entity;
-
-import com.zhang.cache.core.metadata.cachenode.entity.CacheNodeMetadata;
-import com.zhang.cache.core.metadata.hotkey.HotKeyReplicationStatus;
-import lombok.Builder;
-import lombok.Data;
-
-import java.util.List;
+package com.zhang.cache.core.metadata.hotkey;
 
 /**
  * @author zzzhangyxi
- * @since 2026/5/17
+ * @since 2026/7/9
  */
-@Data
-@Builder
-public class HotKeyReplicationMetadata {
-    private String key;
-    private List<CacheNodeMetadata> replicationNodes;
-    private HotKeyReplicationStatus status;
-    private long lastOperationTimestamp;
+public enum HotKeyReplicationStatus {
+    READY,
+    DELETING
 }

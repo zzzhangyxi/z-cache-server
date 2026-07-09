@@ -20,6 +20,7 @@ import com.zhang.cache.core.exception.NoAvailableNodeException;
 import com.zhang.cache.core.metadata.cachenode.CacheNodeMetadataManager;
 import com.zhang.cache.core.metadata.cachenode.entity.CacheNodeMetadata;
 import com.zhang.cache.core.metadata.hotkey.HotKeyReplicationMetadataManager;
+import com.zhang.cache.core.metadata.hotkey.HotKeyReplicationStatus;
 import com.zhang.cache.core.metadata.hotkey.entity.HotKeyReplicationMetadata;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -97,7 +98,13 @@ public class HashRouter {
     }
 
     private boolean isHotKey(HotKeyReplicationMetadata replication) {
-        return replication != null && CollectionUtils.isNotEmpty(replication.getReplicationNodes());
+        return replication != null
+                && isReady(replication)
+                && CollectionUtils.isNotEmpty(replication.getReplicationNodes());
+    }
+
+    private boolean isReady(HotKeyReplicationMetadata replication) {
+        return replication.getStatus() == null || HotKeyReplicationStatus.READY.equals(replication.getStatus());
     }
 
     private HotKeyReplicationMetadata getHotKeyReplicationMetadata(String key) {

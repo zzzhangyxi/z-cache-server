@@ -50,5 +50,7 @@ public interface MetadataRepository {
 
     void updateHotKeyReplicaNodes(HotKeyReplicationMetadata hotKeyReplicationMetadata);
 
+    void deleteHotKeyReplicationMetadata(String hotKey);
+
     void updateCacheNodeRuntimeMetadata(CacheNodeRuntimeMetadata cacheNodeRuntimeMetadata);
 }

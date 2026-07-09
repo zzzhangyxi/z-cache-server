@@ -164,6 +164,11 @@ public class MetadataRepositoryImpl implements MetadataRepository {
     }
 
     @Override
+    public void deleteHotKeyReplicationMetadata(String hotKey) {
+        redisCommands.hdel(RedisConstants.HOT_KEY_REPLICATION, hotKey);
+    }
+
+    @Override
     public void updateCacheNodeRuntimeMetadata(CacheNodeRuntimeMetadata cacheNodeRuntimeMetadata) {
         String jsonString = JSON.toJSONString(cacheNodeRuntimeMetadata);
         redisCommands.hset(RedisConstants.CACHE_NODE_RUNTIME_KEY, cacheNodeRuntimeMetadata.getId(), jsonString);
