@@ -37,24 +37,11 @@ public class ControlPlaneThreadPool {
             Executors.defaultThreadFactory(),
             new ThreadPoolExecutor.CallerRunsPolicy());
 
-    private static final Executor HOT_KEY_REPLICATE_EXECUTOR = new ThreadPoolExecutor(
-            Runtime.getRuntime().availableProcessors(),
-            Runtime.getRuntime().availableProcessors() * 2,
-            60,
-            TimeUnit.SECONDS,
-            new LinkedBlockingQueue<>(100),
-            Executors.defaultThreadFactory(),
-            new ThreadPoolExecutor.CallerRunsPolicy());
-
     private static final ScheduledExecutorService CACHE_NODE_MIGRATION_EXECUTOR =
             Executors.newSingleThreadScheduledExecutor();
 
     public static Executor getHeartbeatExecutor() {
         return HEARTBEAT_EXECUTOR;
-    }
-
-    public static Executor getHotKeyReplicateExecutor() {
-        return HOT_KEY_REPLICATE_EXECUTOR;
     }
 
     public static ScheduledExecutorService getCacheNodeMigrationExecutor() {
