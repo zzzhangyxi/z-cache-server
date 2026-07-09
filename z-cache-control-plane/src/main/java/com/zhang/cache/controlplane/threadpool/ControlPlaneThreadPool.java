@@ -19,6 +19,7 @@ package com.zhang.cache.controlplane.threadpool;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -45,11 +46,18 @@ public class ControlPlaneThreadPool {
             Executors.defaultThreadFactory(),
             new ThreadPoolExecutor.CallerRunsPolicy());
 
+    private static final ScheduledExecutorService CACHE_NODE_MIGRATION_EXECUTOR =
+            Executors.newSingleThreadScheduledExecutor();
+
     public static Executor getHeartbeatExecutor() {
         return HEARTBEAT_EXECUTOR;
     }
 
     public static Executor getHotKeyReplicateExecutor() {
         return HOT_KEY_REPLICATE_EXECUTOR;
+    }
+
+    public static ScheduledExecutorService getCacheNodeMigrationExecutor() {
+        return CACHE_NODE_MIGRATION_EXECUTOR;
     }
 }

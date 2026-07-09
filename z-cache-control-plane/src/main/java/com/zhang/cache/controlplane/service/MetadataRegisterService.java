@@ -16,6 +16,7 @@
  */
 package com.zhang.cache.controlplane.service;
 
+import com.zhang.cache.controlplane.threadpool.ControlPlaneThreadPool;
 import com.zhang.cache.core.constant.HashRingConstants;
 import com.zhang.cache.core.hash.HashUtils;
 import com.zhang.cache.core.metadata.cachenode.entity.CacheNodeMetadata;
@@ -38,6 +39,7 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author zzzhangyxi
@@ -72,19 +74,8 @@ public class MetadataRegisterService {
                 .build();
         metadataRepository.register(cacheNodeMetadata);
         updateMigrationStatus(cacheNodeMetadata, CacheNodeMigrationStatus.DUAL_WRITE_READ_OLD);
-        waitForMigrationMetadataPropagation();
-        migrateDataToNewNode(cacheNodeMetadata);
-
-        cacheNodeRuntimeMetadata.setStatus(CacheNodeStatus.ONLINE);
-        cacheNodeRuntimeMetadata.setLastHeartbeatTimestamp(System.currentTimeMillis());
-        metadataRepository.updateCacheNodeRuntimeMetadata(cacheNodeRuntimeMetadata);
-        updateMigrationStatus(cacheNodeMetadata, CacheNodeMigrationStatus.DUAL_WRITE_READ_NEW);
-        waitForMigrationMetadataPropagation();
-        updateMigrationStatus(cacheNodeMetadata, CacheNodeMigrationStatus.READ_NEW_ONLY);
-        waitForMigrationMetadataPropagation();
-        cleanMigratedDataFromOldNodes(cacheNodeMetadata);
-        metadataRepository.deleteCacheNodeMigrationMetadata(cacheNodeMetadata.getId());
-        log.info("Cache node:[{}] has been registered and set to ONLINE.", id);
+        scheduleMigrationCopy(cacheNodeMetadata, cacheNodeRuntimeMetadata);
+        log.info("Cache node:[{}] has been registered. Migration task has been submitted.", id);
     }
 
     private void updateMigrationStatus(CacheNodeMetadata newNode, CacheNodeMigrationStatus status) {
@@ -98,13 +89,43 @@ public class MetadataRegisterService {
         log.info("Cache node:[{}] migration status has been updated to [{}].", newNode.getId(), status);
     }
 
-    private void waitForMigrationMetadataPropagation() {
-        try {
-            Thread.sleep(MIGRATION_METADATA_PROPAGATION_DELAY_MILLIS);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException("Interrupted while waiting for migration metadata propagation.", e);
-        }
+    private void scheduleMigrationCopy(CacheNodeMetadata newNode, CacheNodeRuntimeMetadata runtimeMetadata) {
+        scheduleMigrationTask(() -> {
+            migrateDataToNewNode(newNode);
+            runtimeMetadata.setStatus(CacheNodeStatus.ONLINE);
+            runtimeMetadata.setLastHeartbeatTimestamp(System.currentTimeMillis());
+            metadataRepository.updateCacheNodeRuntimeMetadata(runtimeMetadata);
+            updateMigrationStatus(newNode, CacheNodeMigrationStatus.DUAL_WRITE_READ_NEW);
+            scheduleReadNewOnly(newNode);
+        });
+    }
+
+    private void scheduleReadNewOnly(CacheNodeMetadata newNode) {
+        scheduleMigrationTask(() -> {
+            updateMigrationStatus(newNode, CacheNodeMigrationStatus.READ_NEW_ONLY);
+            scheduleOldDataCleanup(newNode);
+        });
+    }
+
+    private void scheduleOldDataCleanup(CacheNodeMetadata newNode) {
+        scheduleMigrationTask(() -> {
+            cleanMigratedDataFromOldNodes(newNode);
+            metadataRepository.deleteCacheNodeMigrationMetadata(newNode.getId());
+            log.info("Cache node:[{}] migration has finished. Migration metadata has been removed.", newNode.getId());
+        });
+    }
+
+    private void scheduleMigrationTask(Runnable task) {
+        ControlPlaneThreadPool.getCacheNodeMigrationExecutor().schedule(
+                () -> {
+                    try {
+                        task.run();
+                    } catch (Exception e) {
+                        log.error("Cache node migration task failed.", e);
+                    }
+                },
+                MIGRATION_METADATA_PROPAGATION_DELAY_MILLIS,
+                TimeUnit.MILLISECONDS);
     }
 
     private void migrateDataToNewNode(CacheNodeMetadata newNode) {
@@ -184,17 +205,25 @@ public class MetadataRegisterService {
         }
 
         for (String key : keys) {
-            CacheNodeMetadata oldOwner = route(key, oldHashRing);
-            CacheNodeMetadata newOwner = route(key, newHashRing);
-            if (oldOwner == null || newOwner == null) {
-                continue;
-            }
-            if (!Strings.CS.equals(oldOwner.getId(), sourceNode.getId())
-                    || !Strings.CS.equals(newOwner.getId(), newNode.getId())) {
+            if (isNotMigratedKey(sourceNode, newNode, oldHashRing, newHashRing, key)) {
                 continue;
             }
             moveKey(key, sourceNode, newNode);
         }
+    }
+
+    private boolean isNotMigratedKey(
+            CacheNodeMetadata sourceNode,
+            CacheNodeMetadata newNode,
+            NavigableMap<Long, CacheNodeMetadata> oldHashRing,
+            NavigableMap<Long, CacheNodeMetadata> newHashRing,
+            String key) {
+        CacheNodeMetadata oldOwner = route(key, oldHashRing);
+        CacheNodeMetadata newOwner = route(key, newHashRing);
+        if (oldOwner == null || newOwner == null) {
+            return true;
+        }
+        return !Strings.CS.equals(oldOwner.getId(), sourceNode.getId()) || !Strings.CS.equals(newOwner.getId(), newNode.getId());
     }
 
     private void cleanNodeMigratedData(
@@ -208,13 +237,7 @@ public class MetadataRegisterService {
         }
 
         for (String key : keys) {
-            CacheNodeMetadata oldOwner = route(key, oldHashRing);
-            CacheNodeMetadata newOwner = route(key, newHashRing);
-            if (oldOwner == null || newOwner == null) {
-                continue;
-            }
-            if (!Strings.CS.equals(oldOwner.getId(), sourceNode.getId())
-                    || !Strings.CS.equals(newOwner.getId(), newNode.getId())) {
+            if (isNotMigratedKey(sourceNode, newNode, oldHashRing, newHashRing, key)) {
                 continue;
             }
             businessRepository.del(key, sourceNode);
