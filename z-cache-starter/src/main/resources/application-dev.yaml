@@ -1,0 +1,11 @@
+node-id:
+  file-path: /Users/zzzhangyxi/IdeaProjects/z-cache-server/node-id
+metadata:
+  ip: 127.0.0.1
+  port: 6379
+  password: zhang*2000
+business:
+  password: zhang*2000
+hot-key:
+  absolute-qps-threshold: 1
+  cooling-down-time: 10000

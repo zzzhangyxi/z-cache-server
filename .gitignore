@@ -1,6 +1,5 @@
 .gitignore
 .idea
 **/target/**
-**/application-dev.yaml
 node-id
 **/z-cache-data-plane.iml

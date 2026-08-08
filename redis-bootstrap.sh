@@ -25,7 +25,7 @@ redis-server --daemonize yes
 sleep 3
 
 # register to control plane
-curl -X POST http://control-plane:8080/nodes/register \
+curl -X POST http://control-plane:8080/metadata/register \
   -H "Content-Type: application/json" \
   -d "{
         \"id\":\"$NODE_ID\",
