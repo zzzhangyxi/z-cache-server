@@ -40,17 +40,9 @@ public class CacheNodeMetadataSynchronizer {
 
     private long lastRefreshTime = 0L;
 
-    /**
-     * Do not need to use ConcurrentHashMap, HashMap is enough for a metadata read and update scenario.<br>
-     * This method is the only entrance that can update local metadata cache,
-     * so concurrent issues does not exist here.<br>
-     * Volatile keyword is necessary to avoid visibility issues.
-     */
     @Scheduled(fixedRate = 1000)
     public synchronized void startScheduledRefreshLocalMetadata() {
         log.info("start to schedule refresh local metadata...");
-
-        // use reference replacing to avoid concurrent issues and visibility issues.
         refreshLocalMetadata();
     }
 
