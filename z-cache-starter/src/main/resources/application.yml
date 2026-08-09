@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: z-cache-server
+
+server:
+  address: 127.0.0.1
+  port: ${SERVER_PORT:8080}
+
+node-id:
+  file-path: ${NODE_ID_FILE_PATH}
+
+metadata:
+  ip: ${METADATA_IP:127.0.0.1}
+  port: ${METADATA_PORT:6379}
+  password: ${METADATA_PASSWORD}
+
+business:
+  password: ${BUSINESS_PASSWORD}
+
+hot-key:
+  absolute-qps-threshold: ${HOT_KEY_ABSOLUTE_QPS_THRESHOLD:100}
+  cooling-down-time: ${HOT_KEY_COOLING_DOWN_TIME:10000}
+
+logging:
+  level:
+    root: ${LOG_LEVEL:INFO}
