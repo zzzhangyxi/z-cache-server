@@ -18,8 +18,10 @@ package com.zhang.cache.core.metadata.hotkey.entity;
 
 import com.zhang.cache.core.metadata.cachenode.entity.CacheNodeMetadata;
 import com.zhang.cache.core.metadata.hotkey.HotKeyReplicationStatus;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 
@@ -29,6 +31,8 @@ import java.util.List;
  */
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class HotKeyReplicationMetadata {
     private String key;
     private List<CacheNodeMetadata> replicationNodes;
