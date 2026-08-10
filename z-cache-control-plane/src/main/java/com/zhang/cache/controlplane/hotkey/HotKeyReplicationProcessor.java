@@ -30,6 +30,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -58,6 +59,8 @@ public class HotKeyReplicationProcessor {
     private HashRouter hashRouter;
     @Autowired
     private BusinessRepository businessRepository;
+    @Value("${hot-key.absolute-qps-threshold}")
+    private int hotKeyQpsThreshold;
 
     /**
      * The server cluster is a stateless cluster, which means every node runs equally.
@@ -88,6 +91,7 @@ public class HotKeyReplicationProcessor {
 
             int nodeThreshold = Math.max(1, allHotKeyMetadata.size() / 2 + 1);
             Map<String, Integer> hotKeyCounter = new HashMap<>();
+            Map<String, Double> hotKeyQps = new HashMap<>();
             Set<String> activeOrCoolingDownKeys = new HashSet<>();
 
             if (MapUtils.isNotEmpty(allHotKeyMetadata)) {
@@ -103,6 +107,7 @@ public class HotKeyReplicationProcessor {
                         if (HotKeyStatus.ACTIVE.equals(hotKeyStatus)) {
                             Integer count = hotKeyCounter.getOrDefault(key, 0);
                             hotKeyCounter.put(key, count + 1);
+                            hotKeyQps.merge(key, Math.max(0D, metadata.getQps()), Double::sum);
                             activeOrCoolingDownKeys.add(key);
                         } else if (HotKeyStatus.COOLING_DOWN.equals(hotKeyStatus)) {
                             activeOrCoolingDownKeys.add(key);
@@ -116,7 +121,10 @@ public class HotKeyReplicationProcessor {
             for (Map.Entry<String, Integer> counter : hotKeyCounter.entrySet()) {
                 int activeNodeCount = counter.getValue();
                 if (activeNodeCount >= nodeThreshold) {
-                    doReplicateHotKey(counter.getKey(), activeNodeCount, allWriteVersions);
+                    doReplicateHotKey(
+                            counter.getKey(),
+                            hotKeyQps.getOrDefault(counter.getKey(), 0D),
+                            allWriteVersions);
                 }
             }
         } catch (Exception e) {
@@ -158,15 +166,15 @@ public class HotKeyReplicationProcessor {
             String hotKey,
             HotKeyReplicationMetadata replicationMetadata,
             Map<String, Long> allWriteVersions) {
-        if (replicationMetadata == null || !isReady(replicationMetadata)) {
+        if (replicationMetadata == null || ready(replicationMetadata)) {
             return false;
         }
         return replicationMetadata.getWriteVersion() != getWriteVersion(hotKey, allWriteVersions);
     }
 
-    private boolean isReady(HotKeyReplicationMetadata replicationMetadata) {
+    private boolean ready(HotKeyReplicationMetadata replicationMetadata) {
         HotKeyReplicationStatus status = replicationMetadata.getStatus();
-        return status == null || HotKeyReplicationStatus.READY.equals(status);
+        return status != null && !HotKeyReplicationStatus.READY.equals(status);
     }
 
     private void markInvalidating(
@@ -246,43 +254,102 @@ public class HotKeyReplicationProcessor {
         }
     }
 
-    private void doReplicateHotKey(String hotKey, int activeNodeCount, Map<String, Long> allWriteVersions) {
+    private void doReplicateHotKey(String hotKey, double actualQps, Map<String, Long> allWriteVersions) {
         long now = System.currentTimeMillis();
         long writeVersion = getWriteVersion(hotKey, allWriteVersions);
-        HotKeyReplicationMetadata replicationMetadata = metadataRepository.getHotKeyReplicationMetadata(hotKey);
-        if (replicationMetadata == null) {
-            Map<String, CacheNodeMetadata> onlineNodes = cacheNodeMetadataManager.getOnlineNodes();
-            if (MapUtils.isEmpty(onlineNodes) || onlineNodes.size() <= 1) {
-                log.info("No available replica nodes found for hot key:[{}].", hotKey);
-                return;
-            }
-
-            CacheNodeMetadata originNode = hashRouter.basicRoute(hotKey);
-            List<CacheNodeMetadata> replicaNodes = getReplicaNodes(hotKey, originNode, onlineNodes, activeNodeCount);
-            log.info("replicaNodes = {}", replicaNodes);
-            if (CollectionUtils.isEmpty(replicaNodes)) {
-                log.info("No replica nodes selected for hot key:[{}].", hotKey);
-                return;
-            }
-
-            String businessValue = businessRepository.get(hotKey, originNode);
-            if (businessValue == null) {
-                return;
-            }
-            for (CacheNodeMetadata replicaNode : replicaNodes) {
-                businessRepository.set(hotKey, businessValue, replicaNode);
-            }
-            HotKeyReplicationMetadata hotKeyReplicationMetadata = HotKeyReplicationMetadata.builder()
-                    .key(hotKey)
-                    .replicationNodes(replicaNodes)
-                    .status(HotKeyReplicationStatus.READY)
-                    .lastOperationTimestamp(now)
-                    .writeVersion(writeVersion)
-                    .build();
-            metadataRepository.updateHotKeyReplicaNodes(hotKeyReplicationMetadata);
-        } else {
-            log.info("Hot key:[{}] has already been replicated. Do not need to handle it duplicately.", hotKey);
+        Map<String, CacheNodeMetadata> onlineNodes = cacheNodeMetadataManager.getOnlineNodes();
+        if (MapUtils.isEmpty(onlineNodes) || onlineNodes.size() <= 1) {
+            log.info("No available replica nodes found for hot key:[{}].", hotKey);
+            return;
         }
+        if (hotKeyQpsThreshold <= 0) {
+            log.error("Invalid hot-key QPS threshold:[{}].", hotKeyQpsThreshold);
+            return;
+        }
+
+        CacheNodeMetadata originNode = hashRouter.basicRoute(hotKey);
+        if (originNode == null) {
+            log.info("No original node found for hot key:[{}].", hotKey);
+            return;
+        }
+
+        int desiredTotalCopyCount = calculateDesiredTotalCopyCount(actualQps, onlineNodes.size());
+        int desiredReplicaCount = desiredTotalCopyCount - 1;
+        if (desiredReplicaCount <= 0) {
+            log.info(
+                    "Hot key:[{}] does not require an additional replica. actualQps:[{}], threshold:[{}].",
+                    hotKey, actualQps, hotKeyQpsThreshold);
+            return;
+        }
+
+        HotKeyReplicationMetadata replicationMetadata = metadataRepository.getHotKeyReplicationMetadata(hotKey);
+        if (replicationMetadata != null && ready(replicationMetadata)) {
+            log.info(
+                    "Hot key:[{}] replica metadata is not READY. Skip capacity expansion. status:[{}].",
+                    hotKey, replicationMetadata.getStatus());
+            return;
+        }
+
+        List<CacheNodeMetadata> currentReplicaNodes = getAvailableReplicaNodes(
+                replicationMetadata, originNode, onlineNodes);
+        if (currentReplicaNodes.size() >= desiredReplicaCount) {
+            log.info(
+                    "Hot key:[{}] already has enough replicas. actual:[{}], desired:[{}], actualQps:[{}].",
+                    hotKey, currentReplicaNodes.size(), desiredReplicaCount, actualQps);
+            return;
+        }
+
+        List<CacheNodeMetadata> newReplicaNodes = selectNewReplicaNodes(
+                hotKey,
+                originNode,
+                onlineNodes,
+                currentReplicaNodes,
+                desiredReplicaCount - currentReplicaNodes.size());
+        if (CollectionUtils.isEmpty(newReplicaNodes)) {
+            log.info("No new replica nodes selected for hot key:[{}].", hotKey);
+            return;
+        }
+
+        String businessValue = businessRepository.get(hotKey, originNode);
+        if (businessValue == null) {
+            log.info("No business value found for hot key:[{}].", hotKey);
+            return;
+        }
+
+        for (CacheNodeMetadata replicaNode : newReplicaNodes) {
+            businessRepository.set(hotKey, businessValue, replicaNode);
+        }
+
+        List<CacheNodeMetadata> expandedReplicaNodes = new ArrayList<>(currentReplicaNodes);
+        expandedReplicaNodes.addAll(newReplicaNodes);
+
+        HotKeyReplicationMetadata expandedMetadata = replicationMetadata;
+        if (expandedMetadata == null) {
+            expandedMetadata = HotKeyReplicationMetadata.builder()
+                    .key(hotKey)
+                    .build();
+        }
+        expandedMetadata.setReplicationNodes(expandedReplicaNodes);
+        expandedMetadata.setStatus(HotKeyReplicationStatus.READY);
+        expandedMetadata.setLastOperationTimestamp(now);
+        expandedMetadata.setWriteVersion(writeVersion);
+        metadataRepository.updateHotKeyReplicaNodes(expandedMetadata);
+
+        log.info(
+                "Hot key:[{}] replica capacity has expanded. actualQps:[{}], totalCopies:[{}], replicaNodes:[{}].",
+                hotKey, actualQps, desiredTotalCopyCount, expandedReplicaNodes);
+    }
+
+    private int calculateDesiredTotalCopyCount(double actualQps, int availableNodeCount) {
+        if (actualQps <= 0D || availableNodeCount <= 0) {
+            return 1;
+        }
+
+        double requiredCopies = Math.ceil(actualQps / hotKeyQpsThreshold);
+        if (requiredCopies >= availableNodeCount) {
+            return availableNodeCount;
+        }
+        return Math.max(1, (int) requiredCopies);
     }
 
     private long getWriteVersion(String hotKey, Map<String, Long> allWriteVersions) {
@@ -293,38 +360,64 @@ public class HotKeyReplicationProcessor {
         return writeVersion == null ? 0L : writeVersion;
     }
 
-    private List<CacheNodeMetadata> getReplicaNodes(
+    private List<CacheNodeMetadata> getAvailableReplicaNodes(
+            HotKeyReplicationMetadata replicationMetadata,
+            CacheNodeMetadata originalNode,
+            Map<String, CacheNodeMetadata> onlineNodes) {
+        List<CacheNodeMetadata> replicaNodes = new ArrayList<>();
+        if (replicationMetadata == null
+                || CollectionUtils.isEmpty(replicationMetadata.getReplicationNodes())
+                || originalNode == null
+                || MapUtils.isEmpty(onlineNodes)) {
+            return replicaNodes;
+        }
+
+        Set<String> addedNodeIds = new HashSet<>();
+        for (CacheNodeMetadata replicaNode : replicationMetadata.getReplicationNodes()) {
+            if (replicaNode == null
+                    || Strings.CS.equals(replicaNode.getId(), originalNode.getId())
+                    || !onlineNodes.containsKey(replicaNode.getId())
+                    || !addedNodeIds.add(replicaNode.getId())) {
+                continue;
+            }
+            replicaNodes.add(onlineNodes.get(replicaNode.getId()));
+        }
+        return replicaNodes;
+    }
+
+    private List<CacheNodeMetadata> selectNewReplicaNodes(
             String hotKey,
             CacheNodeMetadata originalNode,
             Map<String, CacheNodeMetadata> onlineNodes,
-            int activeNodeCount) {
-        List<CacheNodeMetadata> replicaNodes = new ArrayList<>();
-        if (originalNode == null || MapUtils.isEmpty(onlineNodes) || onlineNodes.size() <= 1) {
-            return replicaNodes;
-        }
-
-        int replicaCount = Math.min(onlineNodes.size() - 1, activeNodeCount - 1);
-        if (replicaCount <= 0) {
-            return replicaNodes;
-        }
-
+            List<CacheNodeMetadata> currentReplicaNodes,
+            int requiredCount) {
         List<CacheNodeMetadata> candidates = new ArrayList<>();
+        Set<String> existingNodeIds = new HashSet<>();
+        for (CacheNodeMetadata currentReplicaNode : currentReplicaNodes) {
+            if (currentReplicaNode != null) {
+                existingNodeIds.add(currentReplicaNode.getId());
+            }
+        }
+
         for (CacheNodeMetadata node : onlineNodes.values()) {
-            if (node == null || Strings.CS.equals(node.getId(), originalNode.getId())) {
+            if (node == null
+                    || Strings.CS.equals(node.getId(), originalNode.getId())
+                    || existingNodeIds.contains(node.getId())) {
                 continue;
             }
             candidates.add(node);
         }
-        if (CollectionUtils.isEmpty(candidates)) {
-            return replicaNodes;
+        if (CollectionUtils.isEmpty(candidates) || requiredCount <= 0) {
+            return new ArrayList<>();
         }
 
         candidates.sort(Comparator.comparing(left -> String.valueOf(left.getId())));
-        int targetReplicaCount = Math.min(replicaCount, candidates.size());
         int startIndex = Math.floorMod(hotKey.hashCode(), candidates.size());
-        for (int i = 0; i < targetReplicaCount; i++) {
-            replicaNodes.add(candidates.get((startIndex + i) % candidates.size()));
+        int selectedCount = Math.min(requiredCount, candidates.size());
+        List<CacheNodeMetadata> selectedNodes = new ArrayList<>(selectedCount);
+        for (int i = 0; i < selectedCount; i++) {
+            selectedNodes.add(candidates.get((startIndex + i) % candidates.size()));
         }
-        return replicaNodes;
+        return selectedNodes;
     }
 }

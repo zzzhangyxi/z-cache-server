@@ -34,4 +34,8 @@ public class HotKeyMetadata {
     private String key;
     private HotKeyStatus status;
     private long lastOperationTimestamp;
+    /**
+     * Average requests per second observed by the reporting proxy during the effective sliding window.
+     */
+    private double qps;
 }

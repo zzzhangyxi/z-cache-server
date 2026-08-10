@@ -153,9 +153,10 @@ public class HotKeyMetadataManager {
         for (String key : needComputeKeys) {
             // avoid creating empty objects
             long count = AGGREGATION_COUNTER.getOrDefault(key, EMPTY_COUNTER).longValue();
+            double actualQps = (double) count / getEffectWindowSize();
             if (achieveHotKeyThreshold(count)) {
                 // 1. If the current key is a hot key, update timestamp to now
-                result.put(key, buildHotKeyMetadata(key, HotKeyStatus.ACTIVE, now));
+                result.put(key, buildHotKeyMetadata(key, HotKeyStatus.ACTIVE, now, actualQps));
             } else {
                 // 2. If the current key is not a hot key now, there are three cases.
                 if (!hotKeyMetadata.containsKey(key)) {
@@ -168,14 +169,14 @@ public class HotKeyMetadataManager {
 
                 if (HotKeyStatus.ACTIVE.equals(metadata.getStatus())) {
                     // 2.2. This key was a hot key last second, but now it is not. Update timestamp to now.
-                    result.put(key, buildHotKeyMetadata(key, HotKeyStatus.COOLING_DOWN, now));
+                    result.put(key, buildHotKeyMetadata(key, HotKeyStatus.COOLING_DOWN, now, actualQps));
                     log.info("Hot key is cooling down: {}", key);
                 } else {
                     if (HotKeyStatus.COOLING_DOWN.equals(metadata.getStatus())) {
                         // 2.3. This key is already a cooling-down key.
                         if (exceedCoolingDuration) {
                             // 2.3.1. This key has not been a hot key for longer than cooling-down time, marking it as INVALID.
-                            result.put(key, buildHotKeyMetadata(key, HotKeyStatus.INVALID, now));
+                            result.put(key, buildHotKeyMetadata(key, HotKeyStatus.INVALID, now, actualQps));
                             log.info("Key has cooled down: {}", key);
                         } else {
                             // 2.3.2 This key is still cooling down
@@ -215,11 +216,12 @@ public class HotKeyMetadataManager {
         return initial ? currentIndex + 1 : HotKeyConstants.HOT_KEY_WINDOW_SIZE;
     }
 
-    private HotKeyMetadata buildHotKeyMetadata(String key, HotKeyStatus status, long timestamp) {
+    private HotKeyMetadata buildHotKeyMetadata(String key, HotKeyStatus status, long timestamp, double qps) {
         HotKeyMetadata hotKeyMetadata = new HotKeyMetadata();
         hotKeyMetadata.setKey(key);
         hotKeyMetadata.setStatus(status);
         hotKeyMetadata.setLastOperationTimestamp(timestamp);
+        hotKeyMetadata.setQps(qps);
         return hotKeyMetadata;
     }
 }
